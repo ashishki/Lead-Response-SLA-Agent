@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    name: Tests + Lint
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: lead_test
+          POSTGRES_PASSWORD: lead_test
+          POSTGRES_DB: lead_sla_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt -e .
+
+      - name: Lint
+        run: ruff check src/lead_sla_agent tests
+
+      - name: Format check
+        run: ruff format --check src/lead_sla_agent tests
+
+      - name: Run tests
+        env:
+          APP_ENV: test
+          DATABASE_URL: postgresql+asyncpg://lead_test:lead_test@localhost:5432/lead_sla_test
+          REDIS_URL: redis://localhost:6379/0
+          SECRET_KEY: test-secret-key
+          WEBHOOK_SHARED_SECRET: test-webhook-secret
+          LLM_API_KEY: test-llm-key
+          LLM_MODEL_FAST: stable-fast-model
+          LLM_MODEL_REPLY: stable-reply-model
+          EMBEDDING_API_KEY: test-embedding-key
+          EMBEDDING_MODEL: stable-text-embedding
+          TELEGRAM_BOT_TOKEN: test-telegram-token
+          WHATSAPP_PROVIDER_TOKEN: test-whatsapp-token
+          EMAIL_API_KEY: test-email-key
+          EMAIL_SENDER: leads@example.test
+          CALENDAR_API_TOKEN: test-calendar-token
+          CRM_API_TOKEN: test-crm-token
+          MAX_AUTONOMOUS_TURNS: "6"
+          MAX_TOOL_CALLS_PER_TURN: "3"
+          MAX_INDEX_AGE_HOURS: "24"
+        run: python -m pytest tests/ -q --tb=short
