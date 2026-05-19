@@ -17,6 +17,9 @@ This file indexes durable proof so agents can retrieve prior evidence quickly. I
 | NFR baseline plan | nfr | `docs/nfr.md` | Latency and operational targets for pilot | 2026-05-19 | Yes |
 | RAG reference patterns | reference | `docs/RAG_REFERENCE.md` | Dream Motif Interpreter RAG patterns selected for adaptation | 2026-05-19 | No |
 | Active profile eval gates | CI/test | `.github/workflows/ci.yml`, `tests/eval/` | Retrieval, Tool-Use, and Agentic eval gates in CI | 2026-05-19 | Yes |
+| Active production task graph | task graph | `docs/tasks.md` | T19-T49 development-loop tasks after completed prototype | 2026-05-19 | Yes |
+| Completed prototype task graph | archive | `docs/archive/tasks_T01_T18_completed.md` | Historical T01-T18 task graph and acceptance scope | 2026-05-19 | No |
+| Compact loop prompt state | prompt | `docs/CODEX_PROMPT.md`, `docs/prompts/LOOP_TASK_PROMPT.md` | Current next task and per-task loop instructions without completed-task bloat | 2026-05-19 | Yes |
 | Bootstrap decisions | decision log | `docs/DECISION_LOG.md` | Initial solution shape, profiles, runtime, retrieval mode, approval boundaries | 2026-05-19 | No |
 | Bootstrap handoff | journal note | `docs/IMPLEMENTATION_JOURNAL.md` | Session-level continuity for the generated Phase 1 package | 2026-05-19 | No |
 

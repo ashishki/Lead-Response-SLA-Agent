@@ -25,6 +25,15 @@ This file records durable handoff context across agents and sessions. It is not 
 
 ## Entries
 
+### 2026-05-19 - Docs - Production Loop Backlog Setup
+
+- Scope: `docs/tasks.md`, `docs/CODEX_PROMPT.md`, `docs/prompts/ORCHESTRATOR.md`, `docs/prompts/LOOP_TASK_PROMPT.md`, `docs/archive/`, `docs/EVIDENCE_INDEX.md`
+- Why this work happened: the production-readiness strategy needed to become an active AI development-loop backlog without bloating prompts.
+- Decisions applied: keep active prompts compact; archive completed T01-T18 task and prompt history; make T19 the next active task.
+- Evidence collected: documentation sanity checks only; no product code changed.
+- Follow-ups: start T19 when implementation resumes.
+- Notes for next agent: use `docs/tasks.md` for T19-T49 and read archived T01-T18 details only when historical evidence is needed.
+
 ### 2026-05-19 - Phase 6 Review - Evaluation and Deployment Readiness
 
 - Scope: T16-T18, `docs/audit/PHASE6_REVIEW.md`, `docs/audit/AUDIT_INDEX.md`, `docs/CODEX_PROMPT.md`

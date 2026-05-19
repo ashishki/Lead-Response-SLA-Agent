@@ -4,7 +4,7 @@ Version: 1.0
 Execution mode: Codex-only
 Project root: `/home/ashishki/Documents/dev/ai-stack/projects/Lead-Response-SLA-Agent`
 
-This file is the operating prompt for Codex in this repository. There is no Claude Code runtime in this project, and Codex must not invoke Codex through `codex exec` or any nested Codex CLI call. The active Codex session reads state, implements the next task directly, runs verification, and updates the playbook state files.
+This file is the operating prompt for Codex in this repository. There is no Claude Code runtime in this project, and Codex must not invoke Codex through `codex exec` or any nested Codex CLI call. The active Codex session reads state, implements the next task directly, runs verification, and updates the playbook state files. Use `docs/prompts/LOOP_TASK_PROMPT.md` as the compact per-task prompt.
 
 ---
 
@@ -13,6 +13,8 @@ This file is the operating prompt for Codex in this repository. There is no Clau
 - No `codex exec` calls from inside Codex.
 - No `.claude/commands/*` entrypoint is required for this project.
 - Work from file state, not chat memory: `docs/CODEX_PROMPT.md` and `docs/tasks.md` are the current source of truth.
+- Keep prompts compact. Store detailed evidence in `docs/IMPLEMENTATION_JOURNAL.md`, `docs/EVIDENCE_INDEX.md`, eval artifacts, and phase reviews.
+- Historical T01-T18 state is archived in `docs/archive/`; do not read or expand it unless current task evidence requires it.
 - Implement one task at a time unless the user explicitly asks otherwise.
 - Run the development loop nonstop across phase boundaries. A phase boundary is a checkpoint, review, and state update; it is not a pause by default.
 - Continue automatically to the next phase when the phase review has no P0/P1 findings, no eval regression, no architecture/runtime-tier change, and verification is green.
@@ -26,15 +28,16 @@ This file is the operating prompt for Codex in this repository. There is no Clau
 ## Mandatory Start Sequence
 
 1. Read `docs/CODEX_PROMPT.md`.
-2. Read `docs/tasks.md`.
-3. Read `docs/IMPLEMENTATION_CONTRACT.md`.
-4. Check `docs/audit/PHASE1_AUDIT.md`:
+2. Read `docs/prompts/LOOP_TASK_PROMPT.md`.
+3. Read the active task block in `docs/tasks.md`.
+4. Read `docs/IMPLEMENTATION_CONTRACT.md`.
+5. Check `docs/audit/PHASE1_AUDIT.md`:
    - If missing or not `PHASE1_AUDIT: PASS`, stop and report the blocker.
    - If PASS, continue.
-5. Check `git status -sb`.
+6. Check `git status -sb`.
    - If unrelated user changes exist, do not stage or overwrite them.
    - If changes overlap the next task, inspect them and work with them.
-6. Determine the next task from `docs/CODEX_PROMPT.md`.
+7. Determine the next task from `docs/CODEX_PROMPT.md`.
 
 ---
 
@@ -43,8 +46,8 @@ This file is the operating prompt for Codex in this repository. There is no Clau
 For the current task:
 
 1. Read only the task block for the assigned task in `docs/tasks.md`.
-2. Read the task's `Context-Refs`.
-3. Read dependency task summaries only when they affect interfaces or acceptance criteria.
+2. Read the task's `Context-Refs` when present.
+3. Read dependency task summaries only when they affect interfaces or acceptance criteria. Use `docs/archive/tasks_T01_T18_completed.md` only when historical T01-T18 detail is required.
 4. Capture baseline:
    - Before T01, tests may not exist; record `0 passing tests (pre-implementation)`.
    - After tests exist, run `python -m pytest tests/ -q`.
@@ -57,7 +60,7 @@ For the current task:
    - `tool:*` -> `docs/tool_eval.md`
    - `agent:*` -> `docs/agent_eval.md`
    - `plan:*` -> `docs/plan_eval.md` if Planning is ever enabled
-9. Update `docs/CODEX_PROMPT.md` with baseline, next task, completed task, open findings, and profile/eval state changes.
+9. Update `docs/CODEX_PROMPT.md` with baseline, next task, open findings, and profile/eval state changes. Keep detailed completed-task evidence out of the prompt.
 10. Add a concise entry to `docs/IMPLEMENTATION_JOURNAL.md`.
 
 ---

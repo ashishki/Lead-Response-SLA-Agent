@@ -2,747 +2,959 @@
 
 Version: 1.0
 Last updated: 2026-05-19
-Status: Draft
+Status: Active development loop backlog
 
-Every task follows the schema in `templates/tasks_schema.md`. Task tags describe capability ownership. A task with a profile trigger tag is not complete until the matching eval artifact is updated.
+This document is the active task graph for the next development loop. It starts after the completed T01-T18 prototype graph, which is archived at `docs/archive/tasks_T01_T18_completed.md`.
 
----
+The goal is to turn the validated prototype into a mature production-ready product. The backlog is intentionally market-aware: technical maturity is not complete unless it improves pilot reliability, operator trust, and measurable lead-conversion value.
 
-## Phase 1 - Foundation
-
-Goal: create a testable Python/FastAPI skeleton with CI, config, health, and baseline safety rules.
-
-## T01: Project Skeleton
-
-Owner:      codex
-Phase:      1
-Type:       none
-Depends-On: none
-
-Objective: |
-  Create the Python package skeleton, dependency files, local settings loader, FastAPI app entrypoint, and directory layout described in docs/ARCHITECTURE.md so future tasks have stable import paths and a runnable service shell.
-
-Acceptance-Criteria:
-  - id: AC-1
-    description: "Running `python -m lead_sla_agent` starts an ASGI app object import path without raising an import error. Verified by tests/unit/test_project_skeleton.py::test_package_entrypoint_imports."
-    test: "tests/unit/test_project_skeleton.py::test_package_entrypoint_imports"
-  - id: AC-2
-    description: "`Settings` loads `APP_ENV`, `DATABASE_URL`, `REDIS_URL`, `SECRET_KEY`, and `WEBHOOK_SHARED_SECRET` from environment variables with test defaults. Verified by tests/unit/test_project_skeleton.py::test_settings_load_required_values."
-    test: "tests/unit/test_project_skeleton.py::test_settings_load_required_values"
-  - id: AC-3
-    description: "The package includes `api`, `conversation`, `db`, `intake`, `observability`, `operator`, `retrieval`, `tools`, and `workers` modules. Verified by tests/unit/test_project_skeleton.py::test_expected_modules_exist."
-    test: "tests/unit/test_project_skeleton.py::test_expected_modules_exist"
-
-Files:
-  - pyproject.toml
-  - requirements.txt
-  - requirements-dev.txt
-  - src/lead_sla_agent/__init__.py
-  - src/lead_sla_agent/__main__.py
-  - src/lead_sla_agent/config.py
-  - src/lead_sla_agent/api/app.py
-  - tests/unit/test_project_skeleton.py
-
-Context-Refs:
-  - docs/ARCHITECTURE.md#file-layout
-  - docs/ARCHITECTURE.md#runtime-contract
-
-Notes: |
-  Use Python 3.12, FastAPI, Pydantic v2, pytest, pytest-asyncio, httpx, ruff, SQLAlchemy 2.x, Alembic, asyncpg, redis, and OpenTelemetry-compatible dependencies. Do not add provider SDKs until the matching integration task.
-
-## T02: CI Setup
-
-Owner:      codex
-Phase:      1
-Type:       none
-Depends-On: T01
-
-Objective: |
-  Make GitHub Actions install the project, run ruff lint, run ruff format check, start required PostgreSQL and Redis services, and execute the test suite with safe placeholder environment values.
-
-Acceptance-Criteria:
-  - id: AC-1
-    description: ".github/workflows/ci.yml is parseable YAML and contains steps named `Lint`, `Format check`, and `Run tests`. Verified by tests/unit/test_ci_workflow.py::test_ci_workflow_has_required_steps."
-    test: "tests/unit/test_ci_workflow.py::test_ci_workflow_has_required_steps"
-  - id: AC-2
-    description: "The CI workflow declares PostgreSQL and Redis service containers with health checks. Verified by tests/unit/test_ci_workflow.py::test_ci_workflow_declares_required_services."
-    test: "tests/unit/test_ci_workflow.py::test_ci_workflow_declares_required_services"
-  - id: AC-3
-    description: "The test step provides placeholder values for all required runtime contract variables listed for local CI. Verified by tests/unit/test_ci_workflow.py::test_ci_workflow_sets_required_test_env."
-    test: "tests/unit/test_ci_workflow.py::test_ci_workflow_sets_required_test_env"
-
-Files:
-  - .github/workflows/ci.yml
-  - tests/unit/test_ci_workflow.py
-
-Context-Refs:
-  - docs/ARCHITECTURE.md#runtime-contract
-  - docs/IMPLEMENTATION_CONTRACT.md#ci-gate
-
-Notes: |
-  CI must remain runnable after T01 and T03. Use only test placeholder strings, not real provider credentials.
-
-## T03: First Smoke Tests
-
-Owner:      codex
-Phase:      1
-Type:       none
-Depends-On: T01, T02
-
-Objective: |
-  Add the first service smoke tests for app creation, health response shape, and PII-safe health logging so the baseline can be recorded before feature work starts.
-
-Acceptance-Criteria:
-  - id: AC-1
-    description: "`GET /health` returns HTTP 200 with JSON body containing `status: ok` and no PII fields. Verified by tests/integration/test_health.py::test_health_returns_ok_without_pii."
-    test: "tests/integration/test_health.py::test_health_returns_ok_without_pii"
-  - id: AC-2
-    description: "The test suite can run with `python -m pytest tests/ -q` and includes at least one unit test and one integration test. Verified by tests/unit/test_test_layout.py::test_unit_and_integration_tests_exist."
-    test: "tests/unit/test_test_layout.py::test_unit_and_integration_tests_exist"
-  - id: AC-3
-    description: "Ruff check and ruff format check pass for `src/lead_sla_agent` and `tests`. Verified by tests/unit/test_test_layout.py::test_ruff_commands_declared_in_pyproject."
-    test: "tests/unit/test_test_layout.py::test_ruff_commands_declared_in_pyproject"
-
-Files:
-  - src/lead_sla_agent/api/app.py
-  - src/lead_sla_agent/observability/pii.py
-  - tests/integration/test_health.py
-  - tests/unit/test_test_layout.py
-
-Context-Refs:
-  - docs/IMPLEMENTATION_CONTRACT.md#pii-policy
-  - docs/ARCHITECTURE.md#observability
-
-Notes: |
-  After this task passes, update docs/CODEX_PROMPT.md with the first passing baseline.
-
-## T04: Database Models and Tenant Context
-
-Owner:      codex
-Phase:      1
-Type:       none
-Depends-On: T03
-
-Objective: |
-  Define the initial PostgreSQL schema for tenants, leads, conversations, messages, audit events, and provider events with repository helpers that enforce tenant context before tenant-scoped queries.
-
-Acceptance-Criteria:
-  - id: AC-1
-    description: "Alembic metadata includes tenant, lead, conversation, message, audit_event, and provider_event tables with UUID primary keys and created_at timestamps. Verified by tests/unit/test_db_models.py::test_initial_tables_declared."
-    test: "tests/unit/test_db_models.py::test_initial_tables_declared"
-  - id: AC-2
-    description: "Repository calls touching tenant-scoped tables require a tenant ID argument and issue tenant context before query execution. Verified by tests/unit/test_tenant_context.py::test_repository_requires_tenant_context."
-    test: "tests/unit/test_tenant_context.py::test_repository_requires_tenant_context"
-  - id: AC-3
-    description: "SQL helper tests reject f-string, percent-format, or concatenated SQL examples in repository modules. Verified by tests/unit/test_sql_safety.py::test_repository_sql_uses_named_parameters."
-    test: "tests/unit/test_sql_safety.py::test_repository_sql_uses_named_parameters"
-
-Files:
-  - alembic/env.py
-  - alembic/versions/0001_initial_schema.py
-  - src/lead_sla_agent/db/base.py
-  - src/lead_sla_agent/db/models.py
-  - src/lead_sla_agent/db/repositories.py
-  - src/lead_sla_agent/db/tenant.py
-  - tests/unit/test_db_models.py
-  - tests/unit/test_tenant_context.py
-  - tests/unit/test_sql_safety.py
-
-Context-Refs:
-  - docs/IMPLEMENTATION_CONTRACT.md#sql-safety
-  - docs/IMPLEMENTATION_CONTRACT.md#multi-tenant-systems
-
-Notes: |
-  Use `SET LOCAL app.tenant_id = :tid` or an equivalent transaction-scoped tenant context. Do not use session-level `SET`.
-
-## T05: Observability and Audit Baseline
-
-Owner:      codex
-Phase:      1
-Type:       none
-Depends-On: T03, T04
-
-Objective: |
-  Add shared tracing, structured PII-scrubbed logging, metrics helpers, and append-only audit event writing used by intake, retrieval, tool, and conversation tasks.
-
-Acceptance-Criteria:
-  - id: AC-1
-    description: "All tracing imports in `src/lead_sla_agent` resolve to `src/lead_sla_agent/observability/tracing.py::get_tracer`. Verified by tests/unit/test_tracing_contract.py::test_shared_tracing_import_contract."
-    test: "tests/unit/test_tracing_contract.py::test_shared_tracing_import_contract"
-  - id: AC-2
-    description: "Log records containing name, phone, email, or message text are emitted with hashed identifiers or redacted values. Verified by tests/unit/test_pii_scrubber.py::test_pii_values_are_not_logged."
-    test: "tests/unit/test_pii_scrubber.py::test_pii_values_are_not_logged"
-  - id: AC-3
-    description: "Audit event writes append a new row and do not expose update/delete repository methods. Verified by tests/unit/test_audit_events.py::test_audit_repository_append_only_interface."
-    test: "tests/unit/test_audit_events.py::test_audit_repository_append_only_interface"
-
-Files:
-  - src/lead_sla_agent/observability/tracing.py
-  - src/lead_sla_agent/observability/logging.py
-  - src/lead_sla_agent/observability/metrics.py
-  - src/lead_sla_agent/observability/pii.py
-  - src/lead_sla_agent/db/audit.py
-  - tests/unit/test_tracing_contract.py
-  - tests/unit/test_pii_scrubber.py
-  - tests/unit/test_audit_events.py
-
-Context-Refs:
-  - docs/ARCHITECTURE.md#observability
-  - docs/IMPLEMENTATION_CONTRACT.md#observability
-
-Notes: |
-  This task is a prerequisite for all side-effecting and AI-assisted paths.
+Use this document with `docs/CODEX_PROMPT.md` and `docs/prompts/LOOP_TASK_PROMPT.md`. The loop implements one `Next Task` at a time, keeps prompts small, and records details in evidence artifacts instead of expanding prompt files.
 
 ---
 
-## Phase 2 - Intake and Lead State
+## Execution Rules
 
-Goal: accept inbound leads safely, create structured lead state, and track SLA timers.
-
-## T06: Inbound Webhook Intake
-
-Owner:      codex
-Phase:      2
-Type:       none
-Depends-On: T04, T05
-
-Objective: |
-  Implement signed inbound webhook endpoints and event normalization for website forms and a generic messaging-provider event shape.
-
-Acceptance-Criteria:
-  - id: AC-1
-    description: "A valid signed webhook request returns HTTP 202 and stores a provider event with source event ID, channel, tenant ID, payload hash, and received timestamp. Verified by tests/integration/test_webhook_intake.py::test_valid_signed_webhook_persists_provider_event."
-    test: "tests/integration/test_webhook_intake.py::test_valid_signed_webhook_persists_provider_event"
-  - id: AC-2
-    description: "An invalid signature returns HTTP 401 and leaves provider_event, lead, conversation, and audit_event row counts unchanged. Verified by tests/integration/test_webhook_intake.py::test_invalid_signature_creates_no_rows."
-    test: "tests/integration/test_webhook_intake.py::test_invalid_signature_creates_no_rows"
-  - id: AC-3
-    description: "Two webhook deliveries with the same source event ID return the same provider event ID and create one lead. Verified by tests/integration/test_webhook_intake.py::test_replayed_event_is_idempotent."
-    test: "tests/integration/test_webhook_intake.py::test_replayed_event_is_idempotent"
-
-Files:
-  - src/lead_sla_agent/api/webhooks.py
-  - src/lead_sla_agent/intake/schemas.py
-  - src/lead_sla_agent/intake/signatures.py
-  - src/lead_sla_agent/intake/normalizer.py
-  - tests/integration/test_webhook_intake.py
-
-Context-Refs:
-  - docs/spec.md#feature-area-inbound-lead-intake
-  - docs/IMPLEMENTATION_CONTRACT.md#authorization
-
-Notes: |
-  Public webhook routes are intentionally unauthenticated but must verify signatures before accepting state-changing input.
-
-## T07: Lead Records and Transcript State
-
-Owner:      codex
-Phase:      2
-Type:       none
-Depends-On: T06
-
-Objective: |
-  Create lead, conversation, and transcript repositories that convert normalized inbound events into structured lead state and append transcript messages.
-
-Acceptance-Criteria:
-  - id: AC-1
-    description: "A normalized inbound message creates a lead with contact fields, source channel, status `new`, and linked conversation. Verified by tests/integration/test_lead_records.py::test_normalized_event_creates_lead_and_conversation."
-    test: "tests/integration/test_lead_records.py::test_normalized_event_creates_lead_and_conversation"
-  - id: AC-2
-    description: "Inbound and outbound transcript rows store role, channel, provider message ID, content hash, and redacted preview. Verified by tests/integration/test_lead_records.py::test_transcript_rows_store_redacted_preview."
-    test: "tests/integration/test_lead_records.py::test_transcript_rows_store_redacted_preview"
-  - id: AC-3
-    description: "Tenant A cannot read Tenant B leads through repository calls. Verified by tests/integration/test_lead_records.py::test_lead_repository_enforces_tenant_scope."
-    test: "tests/integration/test_lead_records.py::test_lead_repository_enforces_tenant_scope"
-
-Files:
-  - src/lead_sla_agent/intake/lead_service.py
-  - src/lead_sla_agent/db/lead_repository.py
-  - src/lead_sla_agent/db/transcript_repository.py
-  - tests/integration/test_lead_records.py
-
-Context-Refs:
-  - docs/ARCHITECTURE.md#security-boundaries
-
-Notes: |
-  Transcript text is application data and may be PII. Keep logs and metrics scrubbed.
-
-## T08: SLA Timers and Retry Queue
-
-Owner:      codex
-Phase:      2
-Type:       none
-Depends-On: T07
-
-Objective: |
-  Add Redis-backed asynchronous queue helpers for first-response SLA timers, outbound send retries, and provider error fallback to human review.
-
-Acceptance-Criteria:
-  - id: AC-1
-    description: "SLA timer jobs mark a lead with `sla_breached_at` when no outbound response is confirmed before the configured threshold. Verified by tests/integration/test_sla_queue.py::test_sla_timer_records_breach."
-    test: "tests/integration/test_sla_queue.py::test_sla_timer_records_breach"
-  - id: AC-2
-    description: "Outbound send retries stop after the configured retry limit and create a human-review task. Verified by tests/integration/test_sla_queue.py::test_retry_exhaustion_creates_review_task."
-    test: "tests/integration/test_sla_queue.py::test_retry_exhaustion_creates_review_task"
-  - id: AC-3
-    description: "Async queue modules import `redis.asyncio` and never import synchronous `redis`. Verified by tests/unit/test_async_redis.py::test_only_async_redis_imported."
-    test: "tests/unit/test_async_redis.py::test_only_async_redis_imported"
-
-Files:
-  - src/lead_sla_agent/workers/queue.py
-  - src/lead_sla_agent/workers/sla.py
-  - src/lead_sla_agent/workers/retries.py
-  - tests/integration/test_sla_queue.py
-  - tests/unit/test_async_redis.py
-
-Context-Refs:
-  - docs/IMPLEMENTATION_CONTRACT.md#async-redis
-  - docs/spec.md#feature-area-fast-acknowledgement-and-sla-tracking
-
-Notes: |
-  Timer and retry jobs must be idempotent because queues may deliver more than once.
+- Preserve the immutable rules in `docs/IMPLEMENTATION_CONTRACT.md`.
+- Keep runtime at T1 unless an ADR explicitly approves a runtime-tier change.
+- Active profile eval artifacts remain mandatory: `docs/retrieval_eval.md`, `docs/tool_eval.md`, and `docs/agent_eval.md`.
+- A task is not production-ready if it only passes unit tests but does not produce evidence in tests, eval artifacts, runbooks, or pilot metrics.
+- Every phase has two gates:
+  - **Engineering gate:** tests, lint, evals, security boundaries, and rollback evidence pass.
+  - **Market gate:** the work improves a concrete pilot metric, buyer proof point, or onboarding/sales readiness.
 
 ---
 
-## Phase 3 - Retrieval and Knowledge Grounding
+## Phase 7 - Production Persistence and Runtime Hardening
 
-Goal: build text-only RAG ingestion and query-time grounding with measurable no-answer behavior.
+Goal: replace in-memory/fake runtime paths with durable PostgreSQL/Redis behavior while preserving tenant isolation, idempotency, auditability, and restart safety.
 
-## T09: Knowledge Ingestion Pipeline
+### T19: Database-Backed Lead, Conversation, Transcript, Review, and Outcome Repositories
 
-Owner:      codex
-Phase:      3
-Type:       rag:ingestion
-Depends-On: T04, T05
+Owner: codex
+Phase: 7
+Type: persistence tenant:safety
+Depends-On: T18
 
 Objective: |
-  Implement the text-only ingestion pipeline that normalizes approved knowledge documents, chunks them by section, embeds chunks through a versioned adapter, and stores tenant-scoped index rows with schema version and freshness metadata.
+  Replace in-memory repositories used in runtime paths with async SQLAlchemy repositories for leads, conversations, transcripts, review tasks, approvals, and outcome labels.
 
 Acceptance-Criteria:
-  - id: AC-1
-    description: "Ingesting a markdown FAQ creates chunk rows with tenant ID, source document ID, source title, effective date, content hash, chunk ordinal, and index schema version `rag-index-v1`. Verified by tests/integration/test_retrieval_ingestion.py::test_markdown_faq_ingestion_stores_versioned_chunks."
-    test: "tests/integration/test_retrieval_ingestion.py::test_markdown_faq_ingestion_stores_versioned_chunks"
-  - id: AC-2
-    description: "Re-ingesting unchanged source text does not create duplicate chunks and preserves the existing content hash. Verified by tests/integration/test_retrieval_ingestion.py::test_unchanged_source_ingestion_is_idempotent."
-    test: "tests/integration/test_retrieval_ingestion.py::test_unchanged_source_ingestion_is_idempotent"
-  - id: AC-3
-    description: "`docs/retrieval_eval.md` records embedding model, index schema version, chunking strategy, seed dataset path, and baseline status. Verified by tests/eval/test_retrieval_eval.py::test_retrieval_eval_metadata_initialized."
-    test: "tests/eval/test_retrieval_eval.py::test_retrieval_eval_metadata_initialized"
+  - AC-1: Lead, conversation, transcript, review task, approval, and outcome label writes persist to PostgreSQL and survive app restart. Verified by integration tests using PostgreSQL service.
+  - AC-2: Every tenant-scoped repository call requires tenant ID and applies transaction-scoped tenant context before query execution.
+  - AC-3: Cross-tenant reads for leads, transcripts, review tasks, and outcomes return no rows.
+  - AC-4: No raw PII appears in repository exceptions, logs, spans, metrics, or snapshots.
 
 Files:
-  - src/lead_sla_agent/retrieval/documents.py
-  - src/lead_sla_agent/retrieval/chunking.py
-  - src/lead_sla_agent/retrieval/embeddings.py
-  - src/lead_sla_agent/retrieval/ingestion.py
-  - tests/integration/test_retrieval_ingestion.py
-  - tests/eval/test_retrieval_eval.py
-  - docs/retrieval_eval.md
+  - `src/lead_sla_agent/db/lead_repository.py`
+  - `src/lead_sla_agent/db/transcript_repository.py`
+  - `src/lead_sla_agent/operator/review_queue.py`
+  - `src/lead_sla_agent/operator/outcomes.py`
+  - `tests/integration/test_persistent_repositories.py`
 
-Context-Refs:
-  - docs/ARCHITECTURE.md#profile-rag
-  - docs/IMPLEMENTATION_CONTRACT.md#rag-rules
-  - docs/RAG_REFERENCE.md#implementation-notes-for-t09t10
-
-Notes: |
-  Retrieval mode is text-only. Selecting a concrete embedding model updates docs/retrieval_eval.md and docs/DECISION_LOG.md. Use Dream Motif Interpreter only as a pattern reference for source contracts, normalized document flow, idempotent ingestion, token-aware chunking, and shared embedding adapter shape.
-
-Execution-Mode: heavy
 Evidence:
-  - tests/integration/test_retrieval_ingestion.py
-  - tests/eval/test_retrieval_eval.py
-  - docs/retrieval_eval.md baseline metadata
-Verifier-Focus: |
-  Confirm ingestion and query-time retrieval remain separate modules, corpus rows are tenant-scoped, and unchanged source ingestion is idempotent.
+  - PostgreSQL-backed integration tests.
+  - Tenant isolation tests.
+  - SQL safety tests.
 
-## T10: Query-Time Retrieval and Insufficient Evidence
+Market-Gate:
+  - Pilot operator can reload the system and still see all leads, transcripts, reviews, and outcomes.
 
-Owner:      codex
-Phase:      3
-Type:       rag:query
-Depends-On: T09
+### T20: Transactional Intake and Idempotent Event Processing
+
+Owner: codex
+Phase: 7
+Type: persistence intake idempotency
+Depends-On: T19
 
 Objective: |
-  Implement tenant-scoped query-time retrieval, evidence assembly, score filtering, freshness checks, and the `insufficient_evidence` path used by customer-facing reply drafting.
+  Make signed webhook intake transactional: provider event, lead, conversation, initial transcript, and audit event are committed atomically and replay-safe.
 
 Acceptance-Criteria:
-  - id: AC-1
-    description: "Retrieval queries include tenant filtering and never return chunks from another tenant corpus. Verified by tests/integration/test_retrieval_query.py::test_retrieval_is_tenant_scoped."
-    test: "tests/integration/test_retrieval_query.py::test_retrieval_is_tenant_scoped"
-  - id: AC-2
-    description: "Unsupported questions return result status `insufficient_evidence` with no answer text and create a human-review task. Verified by tests/integration/test_retrieval_query.py::test_unsupported_query_creates_insufficient_evidence_handoff."
-    test: "tests/integration/test_retrieval_query.py::test_unsupported_query_creates_insufficient_evidence_handoff"
-  - id: AC-3
-    description: "Retrieval eval computes hit@3, hit@5, MRR, citation precision, no-answer accuracy, and retrieval latency for the seed dataset, and writes an Evaluation History row with Date, Eval Source, Corpus version, Dataset, Metrics, Root cause, Result, and Notes. Verified by tests/eval/test_retrieval_eval.py::test_retrieval_eval_computes_seed_metrics."
-    test: "tests/eval/test_retrieval_eval.py::test_retrieval_eval_computes_seed_metrics"
+  - AC-1: Replayed source event IDs return the existing provider event and do not create duplicate leads or messages.
+  - AC-2: Failed transcript or audit write rolls back the whole intake transaction.
+  - AC-3: Payload hash and source event ID are stored without raw webhook payload persistence.
+  - AC-4: Intake latency is measured and recorded.
 
 Files:
-  - src/lead_sla_agent/retrieval/query.py
-  - src/lead_sla_agent/retrieval/evidence.py
-  - src/lead_sla_agent/retrieval/eval.py
-  - tests/integration/test_retrieval_query.py
-  - tests/eval/test_retrieval_eval.py
-  - tests/eval/fixtures/retrieval_seed.json
-  - docs/retrieval_eval.md
+  - `src/lead_sla_agent/api/webhooks.py`
+  - `src/lead_sla_agent/intake/lead_service.py`
+  - `src/lead_sla_agent/db/repositories.py`
+  - `tests/integration/test_transactional_intake.py`
 
-Context-Refs:
-  - docs/ARCHITECTURE.md#profile-rag
-  - docs/IMPLEMENTATION_CONTRACT.md#rag-rules
-  - docs/RAG_REFERENCE.md#implementation-notes-for-t09t10
-
-Notes: |
-  Do not draft an answer in retrieval code. Return evidence or `insufficient_evidence`; reply drafting belongs to the conversation layer. Use Dream Motif Interpreter as a pattern reference for typed evidence, typed insufficient-evidence result, hybrid vector+FTS/RRF, and exact keyword recall, but add tenant isolation and PII-safe query logging.
-
-Execution-Mode: heavy
 Evidence:
-  - tests/integration/test_retrieval_query.py
-  - tests/eval/test_retrieval_eval.py
-  - docs/retrieval_eval.md current metrics
-Verifier-Focus: |
-  Confirm unsupported queries cannot produce answer text and retrieval metrics are compared against the baseline row.
+  - Transaction rollback tests.
+  - Replay/idempotency tests.
+  - Metrics assertions.
+
+Market-Gate:
+  - Duplicate provider delivery cannot inflate lead counts or operator workload.
+
+### T21: Redis-Backed SLA Timers and Provider Retry Workers
+
+Owner: codex
+Phase: 7
+Type: queue runtime
+Depends-On: T20
+
+Objective: |
+  Replace deterministic in-memory SLA/retry helpers with Redis-backed async queue workers for first-response timers, outbound retry, and provider-error fallback.
+
+Acceptance-Criteria:
+  - AC-1: SLA timer job marks `sla_breached_at` exactly once when no outbound send is confirmed before threshold.
+  - AC-2: Retry worker retries provider sends up to configured limit and then creates a human-review task.
+  - AC-3: Redis access uses only `redis.asyncio`.
+  - AC-4: Worker jobs are idempotent under duplicate delivery.
+
+Files:
+  - `src/lead_sla_agent/workers/queue.py`
+  - `src/lead_sla_agent/workers/sla.py`
+  - `src/lead_sla_agent/workers/retries.py`
+  - `tests/integration/test_redis_workers.py`
+
+Evidence:
+  - Redis integration tests.
+  - Duplicate delivery tests.
+  - Retry exhaustion tests.
+
+Market-Gate:
+  - The system reliably flags missed-response risk without manual monitoring.
+
+### T22: Row-Level Security and Tenant Isolation Drill
+
+Owner: codex
+Phase: 7
+Type: security tenant:safety
+Depends-On: T19
+
+Objective: |
+  Add PostgreSQL RLS policies for tenant-scoped tables and prove app/database isolation even if an application query is wrong.
+
+Acceptance-Criteria:
+  - AC-1: RLS policies exist for every tenant-scoped table.
+  - AC-2: Direct cross-tenant SQL queries return no rows when tenant context is set.
+  - AC-3: Missing tenant context fails closed.
+  - AC-4: Migration tests verify RLS remains enabled.
+
+Files:
+  - `alembic/versions/*_rls_policies.py`
+  - `src/lead_sla_agent/db/tenant.py`
+  - `tests/integration/test_rls_tenant_isolation.py`
+
+Evidence:
+  - RLS integration tests.
+  - Migration metadata checks.
+
+Market-Gate:
+  - Multi-tenant pilot can be sold without cross-customer data exposure risk.
+
+### T23: Backup, Restore, and Migration Drill
+
+Owner: codex
+Phase: 7
+Type: ops reliability
+Depends-On: T22
+
+Objective: |
+  Add documented backup/restore procedures and testable migration safety checks for the pilot deployment.
+
+Acceptance-Criteria:
+  - AC-1: Runbook documents backup schedule, restore command, and restore verification checklist.
+  - AC-2: A local restore drill can load a fixture dump and pass core smoke tests.
+  - AC-3: Forward migrations have rollback notes or explicit irreversible rationale.
+
+Files:
+  - `docs/runbook.md`
+  - `scripts/backup_postgres.sh`
+  - `scripts/restore_postgres.sh`
+  - `tests/unit/test_runbook_backup_restore.py`
+
+Evidence:
+  - Runbook test.
+  - Restore drill notes.
+
+Market-Gate:
+  - A pilot customer can be told how data recovery works in plain language.
 
 ---
 
-## Phase 4 - Tool Schemas and Integrations
+## Phase 8 - Real Provider Integrations
 
-Goal: define versioned tool contracts and safe provider adapters for messaging, CRM, calendar, and review queue side effects.
+Goal: connect one real messaging channel, one calendar provider, and one CRM/spreadsheet destination without weakening safety or requiring live credentials in normal tests.
 
-## T11: Tool Catalog and Unsafe-Action Gates
+### T24: First Real Messaging Provider Adapter
 
-Owner:      codex
-Phase:      4
-Type:       tool:schema tool:unsafe
-Depends-On: T05, T07
+Owner: codex
+Phase: 8
+Type: tool:call provider
+Depends-On: T21
 
 Objective: |
-  Implement the versioned tool catalog, input/output schema validation, side-effect classification, idempotency checks, timeout/retry metadata, and unsafe-action gate used before any external side effect is executed.
+  Implement the first production messaging adapter, preferably the channel chosen for the pilot vertical.
 
 Acceptance-Criteria:
-  - id: AC-1
-    description: "Every registered tool exposes name, version, input schema, output schema, side-effect class, idempotency rule, timeout, retry policy, and human-gate rule. Verified by tests/unit/test_tool_catalog.py::test_registered_tools_expose_contract_fields."
-    test: "tests/unit/test_tool_catalog.py::test_registered_tools_expose_contract_fields"
-  - id: AC-2
-    description: "Side-effecting tool calls without a required idempotency key are rejected before provider execution. Verified by tests/unit/test_tool_catalog.py::test_write_tools_require_idempotency_key."
-    test: "tests/unit/test_tool_catalog.py::test_write_tools_require_idempotency_key"
-  - id: AC-3
-    description: "Unsafe message categories create a human-review task instead of calling the provider adapter. Verified by tests/unit/test_tool_safety.py::test_unsafe_message_send_routes_to_human_review."
-    test: "tests/unit/test_tool_safety.py::test_unsafe_message_send_routes_to_human_review"
-  - id: AC-4
-    description: "`docs/tool_eval.md` records tool schema version, registered tools, side-effect classes, and initial eval scenarios. Verified by tests/eval/test_tool_eval.py::test_tool_eval_metadata_initialized."
-    test: "tests/eval/test_tool_eval.py::test_tool_eval_metadata_initialized"
+  - AC-1: Adapter reads only provider-specific environment variables.
+  - AC-2: Unit and integration tests use fake provider responses and do not require live credentials.
+  - AC-3: Sends use idempotency key and record provider message ID, status, latency, and failure reason.
+  - AC-4: Unsafe message categories still route to human review before provider execution.
 
 Files:
-  - src/lead_sla_agent/tools/catalog.py
-  - src/lead_sla_agent/tools/schemas.py
-  - src/lead_sla_agent/tools/safety.py
-  - src/lead_sla_agent/tools/executor.py
-  - tests/unit/test_tool_catalog.py
-  - tests/unit/test_tool_safety.py
-  - tests/eval/test_tool_eval.py
-  - docs/tool_eval.md
+  - `src/lead_sla_agent/tools/messaging.py`
+  - `src/lead_sla_agent/config.py`
+  - `tests/integration/test_messaging_provider.py`
+  - `docs/tool_eval.md`
 
-Context-Refs:
-  - docs/ARCHITECTURE.md#profile-tool-use
-  - docs/IMPLEMENTATION_CONTRACT.md#tool-use-rules
-
-Notes: |
-  MCP-shaped or external tool catalog rows must follow the schema in reference/external_tools_mcp_companion.md if MCP is introduced later.
-
-Execution-Mode: heavy
 Evidence:
-  - tests/unit/test_tool_catalog.py
-  - tests/unit/test_tool_safety.py
-  - tests/eval/test_tool_eval.py
-  - docs/tool_eval.md
-Verifier-Focus: |
-  Confirm side effects are explicit, unsafe categories cannot bypass human review, and schema version changes are visible in eval metadata.
+  - Fake-provider tests.
+  - Tool eval update.
+  - Secret-scope test.
 
-## T12: Provider Adapters
+Market-Gate:
+  - Pilot can send/receive through the channel the buyer already uses.
 
-Owner:      codex
-Phase:      4
-Type:       tool:call
-Depends-On: T08, T11
+### T25: Calendar Lookup and Booking Provider Adapter
+
+Owner: codex
+Phase: 8
+Type: tool:call booking
+Depends-On: T24
 
 Objective: |
-  Implement provider adapter interfaces and test doubles for messaging, calendar lookup/booking, CRM/spreadsheet writes, lead-history lookup, and human-review task creation without hardcoding provider credentials.
+  Implement a real calendar provider adapter with fresh-slot lookup, explicit customer acceptance, booking idempotency, and fallback to human review.
 
 Acceptance-Criteria:
-  - id: AC-1
-    description: "Messaging adapter sends a redacted test message through a fake provider and records provider message ID, status, and latency. Verified by tests/integration/test_provider_adapters.py::test_fake_messaging_adapter_records_send_result."
-    test: "tests/integration/test_provider_adapters.py::test_fake_messaging_adapter_records_send_result"
-  - id: AC-2
-    description: "Calendar booking rejects a booking request when no fresh slot lookup exists for the requested slot ID. Verified by tests/integration/test_provider_adapters.py::test_booking_requires_fresh_slot_lookup."
-    test: "tests/integration/test_provider_adapters.py::test_booking_requires_fresh_slot_lookup"
-  - id: AC-3
-    description: "CRM writes use lead ID idempotency and return the existing remote record mapping for duplicate writes. Verified by tests/integration/test_provider_adapters.py::test_crm_write_is_idempotent."
-    test: "tests/integration/test_provider_adapters.py::test_crm_write_is_idempotent"
-  - id: AC-4
-    description: "Tool eval records call success, schema validation pass rate, unsafe-gate pass rate, and timeout scenarios. Verified by tests/eval/test_tool_eval.py::test_tool_eval_records_runtime_scenarios."
-    test: "tests/eval/test_tool_eval.py::test_tool_eval_records_runtime_scenarios"
+  - AC-1: Booking without fresh lookup is rejected.
+  - AC-2: Booking without explicit customer acceptance is rejected.
+  - AC-3: Duplicate booking idempotency key returns existing booking mapping.
+  - AC-4: Provider timeout creates retry or human-review fallback according to policy.
 
 Files:
-  - src/lead_sla_agent/tools/messaging.py
-  - src/lead_sla_agent/tools/calendar.py
-  - src/lead_sla_agent/tools/crm.py
-  - src/lead_sla_agent/tools/lead_history.py
-  - src/lead_sla_agent/operator/review_queue.py
-  - tests/integration/test_provider_adapters.py
-  - tests/eval/test_tool_eval.py
-  - docs/tool_eval.md
+  - `src/lead_sla_agent/tools/calendar.py`
+  - `tests/integration/test_calendar_provider.py`
+  - `docs/tool_eval.md`
 
-Context-Refs:
-  - docs/spec.md#feature-area-tool-use-integrations
-  - docs/ARCHITECTURE.md#external-integrations
+Evidence:
+  - Freshness tests.
+  - Idempotency tests.
+  - Timeout fallback tests.
 
-Notes: |
-  Use fake providers in tests. Real provider SDKs require adapter-level environment variables and must not leak credentials into fixtures.
+Market-Gate:
+  - The workflow can turn qualified leads into real booked appointments.
+
+### T26: CRM or Spreadsheet Destination Adapter
+
+Owner: codex
+Phase: 8
+Type: tool:call crm
+Depends-On: T24
+
+Objective: |
+  Implement the first lead record destination, selected for the pilot buyer's current workflow.
+
+Acceptance-Criteria:
+  - AC-1: Create/update writes are idempotent by source event ID or lead ID.
+  - AC-2: Duplicate writes return existing remote mapping.
+  - AC-3: Provider credentials are adapter-scoped.
+  - AC-4: Failed CRM write does not block safe customer acknowledgement; it creates an audit event and retry/handoff path.
+
+Files:
+  - `src/lead_sla_agent/tools/crm.py`
+  - `tests/integration/test_crm_provider.py`
+  - `docs/tool_eval.md`
+
+Evidence:
+  - Fake-provider tests.
+  - Idempotency evidence.
+
+Market-Gate:
+  - Customer's existing team can see AI-captured leads where they already work.
+
+### T27: Provider Webhook Verification Matrix
+
+Owner: codex
+Phase: 8
+Type: intake provider security
+Depends-On: T24
+
+Objective: |
+  Add provider-specific webhook signature verification and event normalization for each enabled inbound channel.
+
+Acceptance-Criteria:
+  - AC-1: Each provider has an explicit signature verifier.
+  - AC-2: Invalid signature writes no provider, lead, conversation, message, or audit rows.
+  - AC-3: Provider-specific user/message IDs are treated as PII in observability.
+  - AC-4: Normalized events preserve source event ID, channel, tenant, received timestamp, and payload hash.
+
+Files:
+  - `src/lead_sla_agent/intake/signatures.py`
+  - `src/lead_sla_agent/intake/normalizer.py`
+  - `tests/integration/test_provider_webhooks.py`
+
+Evidence:
+  - Per-provider signature tests.
+  - PII scrubber tests.
+
+Market-Gate:
+  - Buyer can connect real inbound sources without custom engineering each time.
 
 ---
 
-## Phase 5 - Conversation Runtime and Human Review
+## Phase 9 - LLM and Retrieval Productionization
 
-Goal: combine intake, retrieval, tools, and bounded agent policy into a measurable lead qualification workflow.
+Goal: make AI behavior reliable, measurable, grounded, and maintainable on a real pilot corpus.
 
-## T13: Bounded Conversation Loop
+### T28: Production Embedding Adapter Selection
 
-Owner:      codex
-Phase:      5
-Type:       agent:loop agent:termination tool:call rag:query
-Depends-On: T08, T10, T12
+Owner: codex
+Phase: 9
+Type: rag:ingestion model
+Depends-On: T24
 
 Objective: |
-  Implement the bounded conversation runtime that loads state, extracts lead fields, retrieves evidence when needed, chooses one allowed next action, validates policy/tool constraints, appends audit events, and terminates with a recorded reason.
+  Select and implement a real text embedding provider behind the existing embedding adapter contract.
 
 Acceptance-Criteria:
-  - id: AC-1
-    description: "For a lead missing required fields, the runtime selects an allowed qualifying question and appends one outbound draft event. Verified by tests/integration/test_conversation_loop.py::test_missing_fields_selects_qualifying_question."
-    test: "tests/integration/test_conversation_loop.py::test_missing_fields_selects_qualifying_question"
-  - id: AC-2
-    description: "For an unsupported policy question, the runtime records termination reason `unsupported_question` and creates a human-review task. Verified by tests/integration/test_conversation_loop.py::test_unsupported_question_terminates_with_handoff."
-    test: "tests/integration/test_conversation_loop.py::test_unsupported_question_terminates_with_handoff"
-  - id: AC-3
-    description: "The runtime stops after `MAX_AUTONOMOUS_TURNS` and records termination reason `budget_exceeded`. Verified by tests/integration/test_conversation_loop.py::test_max_turn_budget_terminates_loop."
-    test: "tests/integration/test_conversation_loop.py::test_max_turn_budget_terminates_loop"
-  - id: AC-4
-    description: "`docs/agent_eval.md` records allowed-action accuracy, termination-rate checks, handoff integrity, and tool-call budget scenarios. Verified by tests/eval/test_agent_eval.py::test_agent_eval_metadata_initialized."
-    test: "tests/eval/test_agent_eval.py::test_agent_eval_metadata_initialized"
+  - AC-1: Embedding model, dimensions, index schema version, and reindex requirement are recorded.
+  - AC-2: Unit tests use fake embeddings; live provider tests are opt-in.
+  - AC-3: Changing model or dimensions requires ADR and reindex plan.
+  - AC-4: `docs/retrieval_eval.md` compares deterministic baseline to production embedding baseline.
 
 Files:
-  - src/lead_sla_agent/conversation/state.py
-  - src/lead_sla_agent/conversation/policy.py
-  - src/lead_sla_agent/conversation/loop.py
-  - src/lead_sla_agent/conversation/model_io.py
-  - tests/integration/test_conversation_loop.py
-  - tests/eval/test_agent_eval.py
-  - docs/agent_eval.md
-  - docs/retrieval_eval.md
-  - docs/tool_eval.md
+  - `src/lead_sla_agent/retrieval/embeddings.py`
+  - `docs/adr/*embedding*.md`
+  - `docs/retrieval_eval.md`
+  - `tests/integration/test_embedding_adapter.py`
 
-Context-Refs:
-  - docs/ARCHITECTURE.md#profile-agentic
-  - docs/ARCHITECTURE.md#human-approval-boundaries
-  - docs/IMPLEMENTATION_CONTRACT.md#agentic-rules
-
-Notes: |
-  This is a bounded runtime loop, not higher-autonomy execution. No shell access, hidden memory, runtime subagents, or toolchain mutation.
-
-Execution-Mode: heavy
 Evidence:
-  - tests/integration/test_conversation_loop.py
-  - tests/eval/test_agent_eval.py
-  - docs/agent_eval.md
-  - docs/retrieval_eval.md and docs/tool_eval.md updates if behavior changes those profiles
-Verifier-Focus: |
-  Confirm the loop chooses only allowed actions, updates all affected eval artifacts, and cannot continue after termination conditions.
+  - ADR.
+  - Retrieval eval row.
+  - Adapter tests.
 
-## T14: Human Review Queue and Operator Actions
+Market-Gate:
+  - Retrieval works on real business language, not only synthetic fixtures.
 
-Owner:      codex
-Phase:      5
-Type:       tool:call agent:handoff
-Depends-On: T12, T13
+### T29: Tenant Knowledge Admin API
 
-Objective: |
-  Implement authenticated operator APIs for human-review queue listing, transcript inspection, approval/edit actions, outcome tagging, and safe send after approval.
-
-Acceptance-Criteria:
-  - id: AC-1
-    description: "Authenticated operators can list review tasks with lead summary, handoff reason, transcript references, evidence IDs, and proposed reply when present. Verified by tests/integration/test_operator_review.py::test_operator_can_list_review_tasks."
-    test: "tests/integration/test_operator_review.py::test_operator_can_list_review_tasks"
-  - id: AC-2
-    description: "Unauthenticated operator API requests return HTTP 401 before accessing lead or transcript data. Verified by tests/integration/test_operator_review.py::test_operator_routes_require_auth."
-    test: "tests/integration/test_operator_review.py::test_operator_routes_require_auth"
-  - id: AC-3
-    description: "Approving a proposed reply records actor ID, timestamp, original draft hash, final message hash, and reason code before sending. Verified by tests/integration/test_operator_review.py::test_approval_records_audit_fields_before_send."
-    test: "tests/integration/test_operator_review.py::test_approval_records_audit_fields_before_send"
-  - id: AC-4
-    description: "Outcome labels are stored on the lead and can be queried by tenant and date range. Verified by tests/integration/test_operator_review.py::test_outcome_labels_are_queryable."
-    test: "tests/integration/test_operator_review.py::test_outcome_labels_are_queryable"
-
-Files:
-  - src/lead_sla_agent/operator/api.py
-  - src/lead_sla_agent/operator/auth.py
-  - src/lead_sla_agent/operator/review_queue.py
-  - src/lead_sla_agent/operator/outcomes.py
-  - tests/integration/test_operator_review.py
-
-Context-Refs:
-  - docs/spec.md#feature-area-human-review-and-operator-dashboard
-  - docs/IMPLEMENTATION_CONTRACT.md#authorization
-
-Notes: |
-  Keep UI optional in v1. A JSON operator API is acceptable if it supports review, approve/edit, and outcome tagging.
-
-## T15: End-to-End Lead Workflow
-
-Owner:      codex
-Phase:      5
-Type:       agent:loop tool:call rag:query
-Depends-On: T13, T14
+Owner: codex
+Phase: 9
+Type: rag:ingestion operator
+Depends-On: T28
 
 Objective: |
-  Connect the inbound webhook path, lead creation, retrieval, conversation runtime, tool execution, transcript append, and operator escalation into one end-to-end workflow test path.
+  Add an authenticated API for uploading, listing, disabling, and reindexing tenant-approved knowledge documents.
 
 Acceptance-Criteria:
-  - id: AC-1
-    description: "A valid inbound lead with a supported FAQ question produces one persisted lead, one retrieved evidence set, one outbound message draft, and one confirmed send through the fake messaging provider. Verified by tests/integration/test_end_to_end_workflow.py::test_supported_question_sends_grounded_reply."
-    test: "tests/integration/test_end_to_end_workflow.py::test_supported_question_sends_grounded_reply"
-  - id: AC-2
-    description: "A valid inbound lead asking for regulated advice produces one persisted lead, no provider send, and one human-review task. Verified by tests/integration/test_end_to_end_workflow.py::test_regulated_advice_creates_review_without_send."
-    test: "tests/integration/test_end_to_end_workflow.py::test_regulated_advice_creates_review_without_send"
-  - id: AC-3
-    description: "The workflow records first-response latency and termination reason for every processed inbound event. Verified by tests/integration/test_end_to_end_workflow.py::test_workflow_records_latency_and_termination_reason."
-    test: "tests/integration/test_end_to_end_workflow.py::test_workflow_records_latency_and_termination_reason"
+  - AC-1: Operators can upload markdown/text/CSV-like policy sources.
+  - AC-2: Disabled documents are not retrieved.
+  - AC-3: Reindex action records actor, timestamp, corpus version, and index schema version.
+  - AC-4: Uploads reject raw customer transcript data unless explicitly marked as approved knowledge.
 
 Files:
-  - src/lead_sla_agent/intake/lead_service.py
-  - src/lead_sla_agent/conversation/loop.py
-  - src/lead_sla_agent/workers/outbound.py
-  - tests/integration/test_end_to_end_workflow.py
+  - `src/lead_sla_agent/operator/knowledge_api.py`
+  - `src/lead_sla_agent/retrieval/ingestion.py`
+  - `tests/integration/test_knowledge_admin.py`
 
-Context-Refs:
-  - docs/ARCHITECTURE.md#data-flow
-  - docs/spec.md#overview
+Evidence:
+  - Auth tests.
+  - Corpus version tests.
+  - Retrieval eval update.
 
-Notes: |
-  Use fake provider adapters and seeded retrieval fixtures. Do not require real external credentials for this task.
+Market-Gate:
+  - Non-engineer operator can keep the AI knowledge current.
+
+### T30: Retrieval Eval Dataset Expansion from Pilot Questions
+
+Owner: codex
+Phase: 9
+Type: rag:query eval
+Depends-On: T29
+
+Objective: |
+  Expand retrieval evals from synthetic seed cases to real pilot questions collected from transcripts and operator feedback.
+
+Acceptance-Criteria:
+  - AC-1: Dataset has at least 50 questions from pilot-like scenarios.
+  - AC-2: Dataset includes pricing, service area, cancellation, booking, exact terms, unsupported, stale, and tenant isolation slices.
+  - AC-3: Eval rows include Date, Eval Source, Corpus version, Dataset, Metrics, Root cause, Result, and Notes.
+  - AC-4: No raw customer PII is stored in eval fixtures.
+
+Files:
+  - `tests/eval/fixtures/retrieval_pilot_seed.json`
+  - `docs/retrieval_eval.md`
+  - `tests/eval/test_retrieval_eval.py`
+
+Evidence:
+  - Eval tests.
+  - PII fixture scan.
+
+Market-Gate:
+  - Retrieval quality reflects real buyer questions.
+
+### T31: Prompt, Model, and Policy Version Tracking
+
+Owner: codex
+Phase: 9
+Type: agent:loop model governance
+Depends-On: T30
+
+Objective: |
+  Version all prompt/policy/model contracts used for extraction, reply drafting, handoff summaries, and safety decisions.
+
+Acceptance-Criteria:
+  - AC-1: Every model output stores model name, prompt version, schema version, and policy decision.
+  - AC-2: Prompt changes require eval comparison before rollout.
+  - AC-3: Unsupported evidence cannot produce customer-facing text.
+  - AC-4: Eval artifacts identify prompt/model versions.
+
+Files:
+  - `src/lead_sla_agent/conversation/model_io.py`
+  - `src/lead_sla_agent/conversation/policy.py`
+  - `docs/agent_eval.md`
+  - `tests/integration/test_model_versioning.py`
+
+Evidence:
+  - Agent eval update.
+  - Model version tests.
+
+Market-Gate:
+  - Buyer-facing behavior can be explained and rolled back.
 
 ---
 
-## Phase 6 - Evaluation, Hardening, and Deployment Readiness
+## Phase 10 - Operator Productization
 
-Goal: make the pilot measurable, observable, and deployable without over-escalating runtime complexity.
+Goal: make human-in-the-loop review fast, auditable, and useful for improving the system.
 
-## T16: Active Profile Eval Gates in CI
+### T32: Operator Dashboard or Production Console
 
-Owner:      codex
-Phase:      6
-Type:       rag:query tool:call agent:termination
-Depends-On: T10, T12, T13
+Owner: codex
+Phase: 10
+Type: operator ux
+Depends-On: T14
 
 Objective: |
-  Add CI evaluation steps for retrieval, tool-use, and agent loop regression checks, and record baseline metrics in the matching eval artifacts.
+  Build the first operator surface for review queue, transcript inspection, evidence inspection, approve/edit/send, and outcome labels.
 
 Acceptance-Criteria:
-  - id: AC-1
-    description: "CI runs `tests/eval/test_retrieval_eval.py`, `tests/eval/test_tool_eval.py`, and `tests/eval/test_agent_eval.py` in separate named steps. Verified by tests/unit/test_ci_eval_gates.py::test_ci_runs_active_profile_eval_steps."
-    test: "tests/unit/test_ci_eval_gates.py::test_ci_runs_active_profile_eval_steps"
-  - id: AC-2
-    description: "Each active profile eval artifact contains a baseline row with date, eval source, dataset/version, metrics, root-cause classification, result, and regression rule. Verified by tests/eval/test_eval_artifacts.py::test_active_eval_artifacts_have_baseline_rows."
-    test: "tests/eval/test_eval_artifacts.py::test_active_eval_artifacts_have_baseline_rows"
-  - id: AC-3
-    description: "A simulated retrieval no-answer regression causes the retrieval eval test to fail. Verified by tests/eval/test_eval_artifacts.py::test_retrieval_no_answer_regression_fails_eval."
-    test: "tests/eval/test_eval_artifacts.py::test_retrieval_no_answer_regression_fails_eval"
+  - AC-1: Operator can inspect lead summary, transcript refs, evidence IDs, proposed reply, and required action.
+  - AC-2: Operator can approve, edit, send, or mark as no-send.
+  - AC-3: Every action records actor ID, timestamp, hashes, reason code, and final status.
+  - AC-4: Unauthorized users cannot access operator data.
 
 Files:
-  - .github/workflows/ci.yml
-  - tests/unit/test_ci_eval_gates.py
-  - tests/eval/test_eval_artifacts.py
-  - docs/retrieval_eval.md
-  - docs/tool_eval.md
-  - docs/agent_eval.md
-  - docs/EVIDENCE_INDEX.md
+  - `src/lead_sla_agent/operator/api.py`
+  - frontend or internal console path selected by ADR
+  - `tests/integration/test_operator_dashboard.py`
 
-Context-Refs:
-  - docs/IMPLEMENTATION_CONTRACT.md#profile-evaluation-rules
-  - docs/CODEX_PROMPT.md#evaluation-state
-
-Notes: |
-  This task makes evals part of the merge gate for active profiles.
-
-Execution-Mode: heavy
 Evidence:
-  - .github/workflows/ci.yml active eval steps
-  - tests/eval/test_eval_artifacts.py
-  - docs/retrieval_eval.md, docs/tool_eval.md, docs/agent_eval.md baseline rows
-Verifier-Focus: |
-  Confirm CI can fail on a profile regression even when unit tests are otherwise green.
+  - Operator workflow tests.
+  - Auth/RBAC tests.
 
-## T17: Metrics, Health, and NFR Baseline
+Market-Gate:
+  - Human reviewers can clear edge cases faster than manual inbox handling.
 
-Owner:      codex
-Phase:      6
-Type:       none
-Depends-On: T15
+### T33: Feedback Loop from Operator Outcomes to Eval Fixtures
 
-Objective: |
-  Add metrics for first-response latency, SLA breach rate, provider send failure rate, retrieval latency, insufficient-evidence rate, tool-call success, and agent termination reasons, then initialize the NFR baseline.
-
-Acceptance-Criteria:
-  - id: AC-1
-    description: "Processing an inbound event emits metrics for first-response latency, SLA status, retrieval latency when retrieval runs, tool-call result, and termination reason. Verified by tests/integration/test_metrics.py::test_workflow_emits_required_metrics."
-    test: "tests/integration/test_metrics.py::test_workflow_emits_required_metrics"
-  - id: AC-2
-    description: "`GET /health` includes database, Redis, and retrieval freshness status without lead PII. Verified by tests/integration/test_health.py::test_health_reports_dependencies_without_pii."
-    test: "tests/integration/test_health.py::test_health_reports_dependencies_without_pii"
-  - id: AC-3
-    description: "`docs/nfr.md` records initial targets for first-response p95, deterministic acknowledgement latency, retrieval p95, and provider send failure rate. Verified by tests/unit/test_nfr_doc.py::test_nfr_doc_contains_required_targets."
-    test: "tests/unit/test_nfr_doc.py::test_nfr_doc_contains_required_targets"
-
-Files:
-  - src/lead_sla_agent/observability/metrics.py
-  - src/lead_sla_agent/api/health.py
-  - tests/integration/test_metrics.py
-  - tests/integration/test_health.py
-  - tests/unit/test_nfr_doc.py
-  - docs/nfr.md
-
-Context-Refs:
-  - docs/ARCHITECTURE.md#observability
-
-Notes: |
-  NFR targets are pilot baselines, not scaled production commitments.
-
-## T18: Deployment and Operator Runbook
-
-Owner:      codex
-Phase:      6
-Type:       none
-Depends-On: T16, T17
+Owner: codex
+Phase: 10
+Type: eval operator
+Depends-On: T32
 
 Objective: |
-  Add Docker Compose deployment files, environment documentation, seed-data instructions, backup/rollback notes, and an operator runbook for the first pilot.
+  Convert approved/rejected operator decisions into labeled eval candidates for retrieval, tool, and agent regressions.
 
 Acceptance-Criteria:
-  - id: AC-1
-    description: "`docker compose config` validates API, worker, PostgreSQL, and Redis services with required environment variables declared. Verified by tests/unit/test_deployment_docs.py::test_docker_compose_config_declares_required_services."
-    test: "tests/unit/test_deployment_docs.py::test_docker_compose_config_declares_required_services"
-  - id: AC-2
-    description: "`docs/runbook.md` lists setup, webhook configuration, seed knowledge ingestion, operator review, rollback, and safe handoff procedures. Verified by tests/unit/test_deployment_docs.py::test_runbook_contains_required_sections."
-    test: "tests/unit/test_deployment_docs.py::test_runbook_contains_required_sections"
-  - id: AC-3
-    description: "`docs/runbook.md` states that real provider tokens must come from environment or deployment secrets and must not be committed. Verified by tests/unit/test_deployment_docs.py::test_runbook_documents_secret_source."
-    test: "tests/unit/test_deployment_docs.py::test_runbook_documents_secret_source"
+  - AC-1: Operator feedback exports de-identified candidate eval rows.
+  - AC-2: Human approval is required before adding feedback to canonical eval datasets.
+  - AC-3: Regression tests can run against accepted feedback fixtures.
 
 Files:
-  - Dockerfile
-  - compose.yml
-  - docs/runbook.md
-  - tests/unit/test_deployment_docs.py
+  - `src/lead_sla_agent/operator/feedback.py`
+  - `tests/eval/fixtures/operator_feedback_candidates.json`
+  - `docs/agent_eval.md`
+  - `docs/retrieval_eval.md`
 
-Context-Refs:
-  - docs/ARCHITECTURE.md#runtime-and-isolation-model
-  - docs/IMPLEMENTATION_CONTRACT.md#credentials-and-secrets
+Evidence:
+  - Feedback export tests.
+  - PII scan.
 
-Notes: |
-  Keep deployment at T1. Any T2/T3 runtime change requires ADR before implementation.
+Market-Gate:
+  - The product improves from real operator corrections.
+
+---
+
+## Phase 11 - Pilot Vertical Package
+
+Goal: stop selling a generic AI agent and package one vertical-specific offer with measurable ROI.
+
+### T34: Select First Pilot Vertical and Buyer Persona
+
+Owner: human + codex
+Phase: 11
+Type: market strategy
+Depends-On: T30
+
+Objective: |
+  Pick one time-sensitive service vertical and define the first buyer persona, lead sources, response pain, and measurable value hypothesis.
+
+Acceptance-Criteria:
+  - AC-1: Document selected vertical, rejected alternatives, buyer persona, and current workaround.
+  - AC-2: Define baseline metrics: median response time, missed lead rate, booking rate, and manual review cost.
+  - AC-3: Define first 10 target accounts and outreach channel.
+
+Files:
+  - `docs/market/pilot_vertical.md`
+  - `docs/market/first_10_targets.md`
+
+Evidence:
+  - Interview notes or public research links.
+  - Buyer pain hypothesis.
+
+Market-Gate:
+  - At least 5 target buyers confirm the lead-response pain is real and urgent.
+
+### T35: Vertical Policy Pack
+
+Owner: codex
+Phase: 11
+Type: product vertical
+Depends-On: T34
+
+Objective: |
+  Create a reusable vertical configuration pack: required lead fields, approved FAQ schema, unsafe categories, handoff reasons, and operator scripts.
+
+Acceptance-Criteria:
+  - AC-1: Vertical pack defines required fields and qualification questions.
+  - AC-2: Unsafe/handoff policy covers pricing, commitments, regulated advice, complaints, high-value leads, and booking uncertainty.
+  - AC-3: Seed corpus and eval dataset are included.
+  - AC-4: Pack can initialize a demo tenant.
+
+Files:
+  - `docs/verticals/<vertical>.md`
+  - `seed/verticals/<vertical>/`
+  - `tests/integration/test_vertical_pack.py`
+
+Evidence:
+  - Demo tenant setup test.
+  - Eval fixture coverage.
+
+Market-Gate:
+  - Demo speaks the buyer's language without custom engineering.
+
+### T36: Pilot ROI Dashboard
+
+Owner: codex
+Phase: 11
+Type: analytics market
+Depends-On: T35
+
+Objective: |
+  Add a basic dashboard/API that reports response time, AI-assisted responses, handoff rate, booked outcomes, and before/after comparison.
+
+Acceptance-Criteria:
+  - AC-1: Dashboard/API reports first-response latency p50/p95.
+  - AC-2: Reports automation success, human-review rate, booked labels, and provider send failures.
+  - AC-3: Metrics can be exported for a pilot weekly report.
+
+Files:
+  - `src/lead_sla_agent/operator/analytics.py`
+  - `tests/integration/test_pilot_analytics.py`
+  - `docs/nfr.md`
+
+Evidence:
+  - Analytics tests.
+  - Sample weekly report.
+
+Market-Gate:
+  - Buyer can see whether the product creates booked-call or qualified-handoff lift.
+
+---
+
+## Phase 12 - Security, Reliability, and Compliance Baseline
+
+Goal: make the pilot safe enough for real customer data without over-claiming formal compliance.
+
+### T37: Production Auth and RBAC
+
+Owner: codex
+Phase: 12
+Type: security auth
+Depends-On: T32
+
+Objective: |
+  Replace test bearer auth with production authentication and tenant/role authorization.
+
+Acceptance-Criteria:
+  - AC-1: Operator routes require authenticated principal.
+  - AC-2: Tenant and role checks happen before data access.
+  - AC-3: Auth failures expose no lead, transcript, provider, or tenant data.
+  - AC-4: Tests cover owner, operator, viewer, and unauthorized roles.
+
+Files:
+  - `src/lead_sla_agent/operator/auth.py`
+  - `tests/integration/test_operator_auth_rbac.py`
+
+Evidence:
+  - RBAC tests.
+  - Security review notes.
+
+Market-Gate:
+  - Customer can safely give multiple team members access.
+
+### T38: Secrets Management and Environment Partitioning
+
+Owner: codex
+Phase: 12
+Type: security ops
+Depends-On: T24
+
+Objective: |
+  Document and enforce separate local, staging, and production secrets with adapter-scoped access.
+
+Acceptance-Criteria:
+  - AC-1: Runbook describes secret source for every provider.
+  - AC-2: Tests reject real-looking credentials in fixtures and docs.
+  - AC-3: API and worker receive only required variables.
+  - AC-4: Rotation procedure is documented.
+
+Files:
+  - `docs/runbook.md`
+  - `compose.yml`
+  - `tests/unit/test_secret_policy.py`
+
+Evidence:
+  - Secret scan tests.
+  - Runbook section.
+
+Market-Gate:
+  - Deployment can be operated without credential leaks.
+
+### T39: Data Retention, Export, and Delete Procedures
+
+Owner: codex
+Phase: 12
+Type: privacy ops
+Depends-On: T19
+
+Objective: |
+  Add tenant-level data export and deletion procedures aligned with pilot privacy expectations.
+
+Acceptance-Criteria:
+  - AC-1: Tenant export includes leads, conversations, transcripts, audit, outcomes, and review tasks.
+  - AC-2: Delete/anonymize operation is documented with audit record.
+  - AC-3: Retention policy is configurable per tenant.
+  - AC-4: PII fields are identified in export schema.
+
+Files:
+  - `src/lead_sla_agent/operator/data_admin.py`
+  - `docs/runbook.md`
+  - `tests/integration/test_data_export_delete.py`
+
+Evidence:
+  - Export/delete tests.
+  - Privacy runbook.
+
+Market-Gate:
+  - Buyer can answer "what happens to customer data?" clearly.
+
+### T40: Production Observability and Incident Runbook
+
+Owner: codex
+Phase: 12
+Type: observability ops
+Depends-On: T17
+
+Objective: |
+  Add dashboards/alerts for latency, send failures, SLA breaches, retrieval freshness, insufficient evidence, tool failures, and queue depth.
+
+Acceptance-Criteria:
+  - AC-1: Metrics have stable names and documented labels without PII.
+  - AC-2: Alert thresholds are documented.
+  - AC-3: Incident runbook covers provider outage, retrieval regression, queue backlog, and webhook signature failures.
+  - AC-4: Health endpoint remains PII-free.
+
+Files:
+  - `docs/runbook.md`
+  - `docs/nfr.md`
+  - `src/lead_sla_agent/observability/metrics.py`
+  - `tests/unit/test_observability_contract.py`
+
+Evidence:
+  - Metrics contract tests.
+  - Incident runbook.
+
+Market-Gate:
+  - Operator can detect and explain service failures during pilot.
+
+---
+
+## Phase 13 - Revenue Validation
+
+Goal: prove the product creates economic value before scaling the platform.
+
+### T41: Pilot Measurement Plan
+
+Owner: human + codex
+Phase: 13
+Type: market analytics
+Depends-On: T36
+
+Objective: |
+  Define the before/after measurement plan for the first pilot.
+
+Acceptance-Criteria:
+  - AC-1: Baseline period and pilot period are defined.
+  - AC-2: Metrics include response time, lead capture, booked calls, qualified handoffs, review rate, and cost per lead.
+  - AC-3: Report template exists for weekly buyer update.
+
+Files:
+  - `docs/market/pilot_measurement_plan.md`
+  - `docs/market/weekly_report_template.md`
+
+Evidence:
+  - Measurement plan.
+  - Sample report.
+
+Market-Gate:
+  - Buyer agrees the metrics would justify payment or expansion.
+
+### T42: Pricing and Packaging Experiment
+
+Owner: human + codex
+Phase: 13
+Type: market pricing
+Depends-On: T41
+
+Objective: |
+  Define and test pricing around saved leads/booked appointments rather than generic AI usage.
+
+Acceptance-Criteria:
+  - AC-1: At least two pricing hypotheses are documented.
+  - AC-2: Pricing aligns with lead value and review workload.
+  - AC-3: Pilot contract terms and success criteria are drafted.
+
+Files:
+  - `docs/market/pricing.md`
+  - `docs/market/pilot_terms.md`
+
+Evidence:
+  - Buyer feedback.
+  - Pricing decision log.
+
+Market-Gate:
+  - At least one buyer accepts pilot terms or gives a clear objection to address.
+
+### T43: Case Study and Sales Proof Kit
+
+Owner: human + codex
+Phase: 13
+Type: market sales
+Depends-On: T41
+
+Objective: |
+  Produce the first buyer-facing proof kit from pilot metrics and operator feedback.
+
+Acceptance-Criteria:
+  - AC-1: Case study template includes baseline, intervention, measurable result, and quote slot.
+  - AC-2: Demo script maps to selected vertical pain.
+  - AC-3: Objection handling doc covers safety, data, integration, and pricing.
+
+Files:
+  - `docs/market/case_study_template.md`
+  - `docs/market/demo_script.md`
+  - `docs/market/objections.md`
+
+Evidence:
+  - Sales proof kit.
+
+Market-Gate:
+  - Sales conversation can focus on missed-revenue recovery, not AI novelty.
+
+---
+
+## Phase 14 - Sales-Ready MVP
+
+Goal: make onboarding repeatable for the next 5-10 customers.
+
+### T44: Assisted Onboarding Workflow
+
+Owner: codex
+Phase: 14
+Type: product onboarding
+Depends-On: T35
+
+Objective: |
+  Build a guided setup flow or checklist for tenant creation, provider connection, knowledge upload, operator accounts, and test lead validation.
+
+Acceptance-Criteria:
+  - AC-1: Onboarding checklist can initialize a new tenant in under one working day.
+  - AC-2: Provider connection test sends/receives a fake or sandbox event.
+  - AC-3: Knowledge ingestion test verifies at least 10 tenant questions.
+  - AC-4: Operator approval path is tested before launch.
+
+Files:
+  - `docs/runbook.md`
+  - `scripts/onboard_tenant.py`
+  - `tests/integration/test_onboarding_flow.py`
+
+Evidence:
+  - Onboarding test.
+  - Tenant launch checklist.
+
+Market-Gate:
+  - Founder/operator can onboard a second customer without bespoke engineering.
+
+### T45: Demo Tenant and Sales Sandbox
+
+Owner: codex
+Phase: 14
+Type: demo sales
+Depends-On: T44
+
+Objective: |
+  Create a safe demo tenant with seed leads, corpus, review tasks, and analytics for sales calls.
+
+Acceptance-Criteria:
+  - AC-1: Demo tenant contains no real customer PII.
+  - AC-2: Demo shows supported FAQ, unsupported handoff, booking proposal, and operator approval.
+  - AC-3: Demo reset command restores known state.
+
+Files:
+  - `seed/demo_tenant/`
+  - `scripts/reset_demo_tenant.py`
+  - `tests/integration/test_demo_tenant.py`
+
+Evidence:
+  - Demo reset tests.
+  - PII scan.
+
+Market-Gate:
+  - Sales demo can be run repeatedly without engineering support.
+
+### T46: Support and Operations Process
+
+Owner: human + codex
+Phase: 14
+Type: ops support
+Depends-On: T44
+
+Objective: |
+  Define support process for pilot customers: issue intake, severity, response SLA, escalation, and post-incident review.
+
+Acceptance-Criteria:
+  - AC-1: Support runbook defines severity levels and response expectations.
+  - AC-2: Incident template exists.
+  - AC-3: Customer communication templates exist for provider outage and AI safety handoff.
+
+Files:
+  - `docs/support/runbook.md`
+  - `docs/support/incident_template.md`
+  - `docs/support/customer_templates.md`
+
+Evidence:
+  - Support docs.
+
+Market-Gate:
+  - Pilot customer knows how issues are handled.
+
+---
+
+## Phase 15 - Multi-Tenant SaaS Scale
+
+Goal: scale only after pilot value is proven.
+
+### T47: Tenant Admin and Configuration
+
+Owner: codex
+Phase: 15
+Type: saas tenant
+Depends-On: T44
+
+Objective: |
+  Add tenant admin configuration for channels, business hours, required fields, max turns, handoff policy, and provider settings.
+
+Acceptance-Criteria:
+  - AC-1: Tenant admin can update safe configuration without code deployment.
+  - AC-2: Dangerous policy changes require elevated role or approval.
+  - AC-3: Config changes are audited and versioned.
+
+Files:
+  - `src/lead_sla_agent/operator/tenant_admin.py`
+  - `tests/integration/test_tenant_admin.py`
+
+Evidence:
+  - Config tests.
+  - Audit tests.
+
+Market-Gate:
+  - Multiple customers can run with different policies.
+
+### T48: Usage Metering and Billing Readiness
+
+Owner: codex
+Phase: 15
+Type: billing analytics
+Depends-On: T36
+
+Objective: |
+  Track usage dimensions needed for pricing: leads processed, AI-assisted replies, provider sends, review tasks, bookings, and active channels.
+
+Acceptance-Criteria:
+  - AC-1: Usage events are tenant-scoped and append-only.
+  - AC-2: Monthly usage export exists.
+  - AC-3: Billing metrics exclude PII.
+  - AC-4: Pricing experiments can map to usage exports.
+
+Files:
+  - `src/lead_sla_agent/billing/usage.py`
+  - `tests/integration/test_usage_metering.py`
+
+Evidence:
+  - Usage export tests.
+
+Market-Gate:
+  - Product can support paid pilots and early SaaS billing.
+
+### T49: Staging/Production Release Discipline
+
+Owner: codex
+Phase: 15
+Type: ops release
+Depends-On: T40
+
+Objective: |
+  Establish staging/prod separation, migration policy, CI/CD gates, release notes, and rollback validation.
+
+Acceptance-Criteria:
+  - AC-1: CI distinguishes unit, integration, eval, and deployment checks.
+  - AC-2: Staging deploy runs migrations and smoke tests before production.
+  - AC-3: Release notes include model/prompt/schema/eval changes.
+  - AC-4: Rollback procedure is tested before production promotion.
+
+Files:
+  - `.github/workflows/ci.yml`
+  - `.github/workflows/deploy.yml`
+  - `docs/runbook.md`
+  - `docs/release_template.md`
+
+Evidence:
+  - CI/CD config tests.
+  - Release checklist.
+
+Market-Gate:
+  - Customers can receive reliable updates without surprise regressions.
+
+---
+
+## Recommended Sequence
+
+The highest-leverage path is:
+
+1. Phase 7: durable runtime and tenant safety.
+2. Phase 8: one real messaging channel, one real calendar, one real CRM/spreadsheet.
+3. Phase 11: one vertical package and first buyer proof.
+4. Phase 9 and Phase 10 in parallel: production AI quality plus operator UX.
+5. Phase 12 before handling broader customer data.
+6. Phase 13 before scaling engineering scope.
+7. Phase 14 and Phase 15 only after pilot proof exists.
+
+Avoid building generic SaaS scale before one vertical has a credible booked-lead or qualified-handoff lift.
