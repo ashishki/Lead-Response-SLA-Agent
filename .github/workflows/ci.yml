@@ -76,3 +76,12 @@ jobs:
           MAX_TOOL_CALLS_PER_TURN: "3"
           MAX_INDEX_AGE_HOURS: "24"
         run: python -m pytest tests/ -q --tb=short
+
+      - name: Retrieval eval
+        run: python -m pytest tests/eval/test_retrieval_eval.py -q --tb=short
+
+      - name: Tool-use eval
+        run: python -m pytest tests/eval/test_tool_eval.py -q --tb=short
+
+      - name: Agent eval
+        run: python -m pytest tests/eval/test_agent_eval.py -q --tb=short

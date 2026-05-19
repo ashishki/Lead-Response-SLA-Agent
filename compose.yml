@@ -1,0 +1,62 @@
+services:
+  api:
+    build: .
+    command: uvicorn lead_sla_agent.api.app:app --host 0.0.0.0 --port 8000
+    environment:
+      APP_ENV: ${APP_ENV}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      SECRET_KEY: ${SECRET_KEY}
+      WEBHOOK_SHARED_SECRET: ${WEBHOOK_SHARED_SECRET}
+      LLM_API_KEY: ${LLM_API_KEY}
+      LLM_MODEL_FAST: ${LLM_MODEL_FAST}
+      LLM_MODEL_REPLY: ${LLM_MODEL_REPLY}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      WHATSAPP_PROVIDER_TOKEN: ${WHATSAPP_PROVIDER_TOKEN}
+      EMAIL_API_KEY: ${EMAIL_API_KEY}
+      EMAIL_SENDER: ${EMAIL_SENDER}
+      CALENDAR_API_TOKEN: ${CALENDAR_API_TOKEN}
+      CRM_API_TOKEN: ${CRM_API_TOKEN}
+      MAX_AUTONOMOUS_TURNS: ${MAX_AUTONOMOUS_TURNS}
+      MAX_TOOL_CALLS_PER_TURN: ${MAX_TOOL_CALLS_PER_TURN}
+      MAX_INDEX_AGE_HOURS: ${MAX_INDEX_AGE_HOURS}
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "8000:8000"
+
+  worker:
+    build: .
+    command: python -m lead_sla_agent
+    environment:
+      APP_ENV: ${APP_ENV}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      SECRET_KEY: ${SECRET_KEY}
+      WEBHOOK_SHARED_SECRET: ${WEBHOOK_SHARED_SECRET}
+      CALENDAR_API_TOKEN: ${CALENDAR_API_TOKEN}
+      CRM_API_TOKEN: ${CRM_API_TOKEN}
+      MAX_AUTONOMOUS_TURNS: ${MAX_AUTONOMOUS_TURNS}
+      MAX_TOOL_CALLS_PER_TURN: ${MAX_TOOL_CALLS_PER_TURN}
+      MAX_INDEX_AGE_HOURS: ${MAX_INDEX_AGE_HOURS}
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+
+volumes:
+  postgres_data:
