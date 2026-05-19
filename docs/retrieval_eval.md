@@ -54,11 +54,12 @@ A fluent answer can hide bad retrieval. Correct retrieval can still lead to a ba
 
 | Field | Value |
 |-------|-------|
-| Index schema version | `rag-index-v1` planned |
+| Index schema version | `rag-index-v1` |
 | Retrieval mode | text-only |
 | Reference implementation | `docs/RAG_REFERENCE.md`, based on `https://github.com/ashishki/Dream_Motif_Interpreter` |
-| Embedding model | pending T09 implementation decision |
-| Chunking strategy | section/heading-aware chunks planned; token-aware chunking preferred once tokenizer/model is selected |
+| Embedding model | `local-hash-embedding-v1` |
+| Chunking strategy | markdown-heading-v1 |
+| Baseline status | T10 seed retrieval baseline established |
 | Max index age | 24 hours |
 | Corpus scope | Tenant-approved FAQs, pricing ranges, service descriptions, service-area rules, cancellation policies, booking rules, escalation instructions |
 | Unsupported-answer behavior | Return `insufficient_evidence` and create human-review task |
@@ -133,6 +134,8 @@ Do not use answer quality to mask retrieval regressions.
 | Date | Task | Eval Source | Corpus version | Dataset | Metrics | Root cause | Result | Notes |
 |------|------|-------------|----------------|---------|---------|------------|--------|-------|
 | 2026-05-19 | Bootstrap | documentation initialization; no retrieval run yet | n/a | planned seed dataset | not yet measured | n/a | pending | Baseline will be established by T09/T10. |
+| 2026-05-19 | T09 | `.venv/bin/python -m pytest tests/eval/test_retrieval_eval.py::test_retrieval_eval_metadata_initialized tests/integration/test_retrieval_ingestion.py, run 2026-05-19` | `rag-index-v1` | `tests/eval/fixtures/retrieval_seed.json` planned seed path | ingestion metadata only; retrieval quality not yet measured | code-change-induced | pass | Text-only ingestion metadata initialized with deterministic local embedding adapter; retrieval metric baseline remains pending T10. |
+| 2026-05-19 | T10 | `.venv/bin/python -m pytest tests/eval/test_retrieval_eval.py::test_retrieval_eval_computes_seed_metrics tests/integration/test_retrieval_query.py, run 2026-05-19` | `rag-index-v1` | `tests/eval/fixtures/retrieval_seed.json` | hit@3=1.00; hit@5=1.00; MRR=1.00; citation_precision=1.00; no-answer accuracy=1.00; retrieval_p95_latency_ms<1 local | code-change-induced | pass | Tenant filtering and insufficient-evidence handoff covered by integration tests; local deterministic baseline only. |
 
 ---
 

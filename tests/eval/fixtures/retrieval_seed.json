@@ -1,0 +1,87 @@
+{
+  "documents": [
+    {
+      "tenant_id": "00000000-0000-4000-8000-0000000000a1",
+      "source_document_id": "tenant-a-services",
+      "source_title": "Tenant A Services",
+      "effective_date": "2026-05-19",
+      "text": "# Emergency appointments\nTenant A offers emergency appointments and standard consultations.\n\n## Booking\nSame-day appointments are available when open slots exist.\n\n## Cancellation\nCancel at least 24 hours before the appointment."
+    },
+    {
+      "tenant_id": "00000000-0000-4000-8000-0000000000a1",
+      "source_document_id": "tenant-a-area",
+      "source_title": "Tenant A Service Area",
+      "effective_date": "2026-05-19",
+      "text": "# Service Area\nTenant A serves downtown, northside, and west park neighborhoods.\n\n## Pricing\nConsultation pricing starts with the standard visit package."
+    },
+    {
+      "tenant_id": "00000000-0000-4000-8000-0000000000b1",
+      "source_document_id": "tenant-b-area",
+      "source_title": "Tenant B Service Area",
+      "effective_date": "2026-05-19",
+      "text": "# Service Area\nTenant B serves lakeside and airport neighborhoods."
+    }
+  ],
+  "queries": [
+    {
+      "tenant_id": "00000000-0000-4000-8000-0000000000a1",
+      "query": "Do you offer emergency appointments?",
+      "expected_status": "evidence",
+      "expected_source_document_ids": ["tenant-a-services"]
+    },
+    {
+      "tenant_id": "00000000-0000-4000-8000-0000000000a1",
+      "query": "Can I book a same-day appointment?",
+      "expected_status": "evidence",
+      "expected_source_document_ids": ["tenant-a-services"]
+    },
+    {
+      "tenant_id": "00000000-0000-4000-8000-0000000000a1",
+      "query": "What is your cancellation policy?",
+      "expected_status": "evidence",
+      "expected_source_document_ids": ["tenant-a-services"]
+    },
+    {
+      "tenant_id": "00000000-0000-4000-8000-0000000000a1",
+      "query": "Do you serve downtown?",
+      "expected_status": "evidence",
+      "expected_source_document_ids": ["tenant-a-area"]
+    },
+    {
+      "tenant_id": "00000000-0000-4000-8000-0000000000a1",
+      "query": "Do you serve northside?",
+      "expected_status": "evidence",
+      "expected_source_document_ids": ["tenant-a-area"]
+    },
+    {
+      "tenant_id": "00000000-0000-4000-8000-0000000000a1",
+      "query": "What does consultation pricing start with?",
+      "expected_status": "evidence",
+      "expected_source_document_ids": ["tenant-a-area"]
+    },
+    {
+      "tenant_id": "00000000-0000-4000-8000-0000000000a1",
+      "query": "Tell me about the standard visit package",
+      "expected_status": "evidence",
+      "expected_source_document_ids": ["tenant-a-area"]
+    },
+    {
+      "tenant_id": "00000000-0000-4000-8000-0000000000a1",
+      "query": "Can you provide medical advice?",
+      "expected_status": "insufficient_evidence",
+      "expected_source_document_ids": []
+    },
+    {
+      "tenant_id": "00000000-0000-4000-8000-0000000000a1",
+      "query": "Can you write a legal contract?",
+      "expected_status": "insufficient_evidence",
+      "expected_source_document_ids": []
+    },
+    {
+      "tenant_id": "00000000-0000-4000-8000-0000000000a1",
+      "query": "lakeside airport",
+      "expected_status": "insufficient_evidence",
+      "expected_source_document_ids": []
+    }
+  ]
+}
