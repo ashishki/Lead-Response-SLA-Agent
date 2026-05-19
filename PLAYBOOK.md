@@ -11,6 +11,9 @@ This repository runs the workflow directly in Codex. There is no Claude Code
 runtime, no `.claude` command entrypoint, and no `codex exec` call from inside
 an active Codex session. If generic upstream playbook language conflicts with
 `docs/prompts/ORCHESTRATOR.md`, the project-local Codex-only orchestrator wins.
+Development runs as a nonstop loop: clean phase boundaries are checkpoints, not
+manual pause points. Codex continues to the next phase unless a stop condition
+is present.
 
 ---
 

@@ -14,6 +14,8 @@ This file is the operating prompt for Codex in this repository. There is no Clau
 - No `.claude/commands/*` entrypoint is required for this project.
 - Work from file state, not chat memory: `docs/CODEX_PROMPT.md` and `docs/tasks.md` are the current source of truth.
 - Implement one task at a time unless the user explicitly asks otherwise.
+- Run the development loop nonstop across phase boundaries. A phase boundary is a checkpoint, review, and state update; it is not a pause by default.
+- Continue automatically to the next phase when the phase review has no P0/P1 findings, no eval regression, no architecture/runtime-tier change, and verification is green.
 - Do not claim independent review when the same Codex session wrote the code. Record it as a verification pass. Independent review means a fresh Codex session or a human review.
 - Do not start implementation if `docs/audit/PHASE1_AUDIT.md` is missing or not `PASS`.
 - For profile-tagged tasks, update the matching eval artifact before marking the task done.
@@ -80,6 +82,29 @@ Record verification status in `docs/IMPLEMENTATION_JOURNAL.md`. If a blocker rem
 
 ---
 
+## Nonstop Loop Policy
+
+The default operating mode is continuous execution through the task graph:
+
+1. Finish the current task.
+2. Verify it.
+3. Update state and evidence.
+4. If the phase is complete, run the phase boundary protocol.
+5. If no stop condition exists, immediately begin the next task, including the first task of the next phase.
+
+Do not wait for manual confirmation between phases just because the phase number changed. Human approval is required only for stop conditions:
+
+- P0/P1 findings that remain unresolved.
+- Failing tests, lint, format, CI, or active profile eval gates.
+- Eval regression that is not already justified and accepted.
+- Architecture, runtime-tier, governance, active-profile, retrieval-mode, compliance, or security-boundary changes.
+- Missing required evidence, audit artifact, or phase review artifact.
+- User explicitly asks Codex to pause, stop, or wait.
+
+When a stop condition exists, record the exact blocker in `docs/CODEX_PROMPT.md` Fix Queue and `docs/IMPLEMENTATION_JOURNAL.md`, then report it to the user. Otherwise keep following the loop.
+
+---
+
 ## Phase Boundary Protocol
 
 When all tasks in a phase are complete:
@@ -94,7 +119,9 @@ When all tasks in a phase are complete:
    - eval state
 4. Write a phase review artifact under `docs/audit/`, for example `docs/audit/PHASE1_REVIEW.md`.
 5. Update `docs/audit/AUDIT_INDEX.md`.
-6. Ask for human approval before starting the next phase if there are P0/P1 findings, architecture changes, runtime-tier changes, or eval regressions.
+6. Apply the Nonstop Loop Policy:
+   - if a stop condition exists, pause and report the blocker;
+   - if no stop condition exists, continue directly into the next task.
 
 If independent review is desired, the human should start a fresh Codex session and ask it to review the phase using `docs/audit/PROMPT_0_META.md`, `PROMPT_1_ARCH.md`, `PROMPT_2_CODE.md`, and `PROMPT_3_CONSOLIDATED.md`.
 
@@ -116,4 +143,4 @@ If independent review is desired, the human should start a fresh Codex session a
 
 ## Start Now
 
-If the user asks to continue implementation, execute the Mandatory Start Sequence and begin the `Next Task` from `docs/CODEX_PROMPT.md` directly in the current Codex session.
+If the user asks to continue implementation, execute the Mandatory Start Sequence and begin the `Next Task` from `docs/CODEX_PROMPT.md` directly in the current Codex session. Continue task-by-task and phase-by-phase until a stop condition exists or the task graph is complete.

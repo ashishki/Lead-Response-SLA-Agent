@@ -130,6 +130,8 @@ Phase 1 package готов. Архитектура, task graph, implementation c
 - Codex-only.
 - Без Claude runtime.
 - Без вызова `codex exec` изнутри Codex.
+- Разработка идет nonstop loop: Codex проходит задачи и фазы подряд, не останавливаясь на чистых phase boundaries.
+- Остановка допускается только при blocker/stop condition: P0/P1, failing checks, eval regression, architecture/runtime/security change, missing evidence или явная команда остановиться.
 - Реализация начинается с `T01: Project Skeleton` из `docs/tasks.md`.
 
 ## Ключевые документы

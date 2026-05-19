@@ -8,6 +8,8 @@ Any agent may cite this document as the authority on implementation rules. Any i
 
 Execution model: Codex-only. There is no Claude Code runtime for this project, and active Codex sessions must not invoke Codex through `codex exec` or any nested Codex CLI call. Codex performs task implementation directly in the current workspace.
 
+Development cadence: nonstop loop. Codex follows `docs/prompts/ORCHESTRATOR.md` task-by-task and phase-by-phase without pausing at clean phase boundaries. Phase boundaries require verification, review artifact updates, audit index updates, and state updates, but they do not require manual confirmation unless a stop condition exists.
+
 ---
 
 ## Universal Rules
@@ -188,6 +190,9 @@ Violation: automatic P1 for real credential exposure; P2 for tests that require 
 
 ## Quality Process Rules
 
+- Development continues nonstop across phases when verification is green and no stop condition exists.
+- Stop conditions are unresolved P0/P1 findings, failing tests/lint/format/CI/evals, unjustified eval regressions, architecture/runtime/governance/profile/security-boundary changes, missing required evidence, or an explicit user pause/stop instruction.
+- A clean phase boundary is a checkpoint, not a handoff wait state.
 - P2 Age Cap: any P2 finding open for more than three review cycles must be resolved, escalated to P1, or formally deferred by ADR before the next phase gate.
 - Retrieval-critical P2 findings have a one-cycle age cap.
 - One logical change per commit. Do not bundle unrelated migrations, service logic, and review fixes.
