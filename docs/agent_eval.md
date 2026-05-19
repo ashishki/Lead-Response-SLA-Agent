@@ -16,7 +16,7 @@ This artifact tracks the bounded conversation loop. Agentic tasks are not comple
 
 | Field | Value |
 |-------|-------|
-| Loop contract version | `agent-loop-v1` planned |
+| Loop contract version | `agent-loop-v1` |
 | Agent role | Bounded lead qualification conversation runtime |
 | State source | PostgreSQL conversation state and transcript rows |
 | Max autonomous turns | Default 6 |
@@ -79,6 +79,7 @@ This artifact tracks the bounded conversation loop. Agentic tasks are not comple
 | Date | Task | Loop version | Dataset | Metrics | Result | Notes |
 |------|------|--------------|---------|---------|--------|-------|
 | 2026-05-19 | Bootstrap | planned `agent-loop-v1` | planned scenarios | not yet measured | pending | Baseline will be established by T13. |
+| 2026-05-19 | T13 | `agent-loop-v1` | `tests/integration/test_conversation_loop.py` scenarios | allowed-action accuracy=100%; termination reason accuracy=100%; handoff integrity=100%; tool-call budget enforcement=100% | pass | Deterministic bounded runtime covers missing fields, unsupported policy handoff, and max-turn budget termination. |
 
 ---
 
