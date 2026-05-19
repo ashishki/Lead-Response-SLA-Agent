@@ -95,7 +95,7 @@ def parse_task_phases(text: str):
     return task_phases
 
 
-def apply_edit_like_claude(text: str, payload: dict):
+def apply_edit_payload(text: str, payload: dict):
     name = payload.get("tool_name", "")
     t_input = payload.get("tool_input", {})
     if name == "Write":
@@ -118,7 +118,7 @@ def apply_edit_like_claude(text: str, payload: dict):
     return text
 
 
-projected_text = apply_edit_like_claude(current_text, payload)
+projected_text = apply_edit_payload(current_text, payload)
 current_phase = extract_phase(current_text)
 projected_phase = extract_phase(projected_text)
 task_phases = parse_task_phases(tasks_text)

@@ -134,6 +134,8 @@ RAG, Tool-Use, and Agentic are ON because they govern real runtime behavior in t
 
 ### Profile: RAG
 
+Reference: use `docs/RAG_REFERENCE.md`, based on https://github.com/ashishki/Dream_Motif_Interpreter, as a design reference for connector contracts, normalized document flow, pgvector/HNSW indexing, hybrid vector+FTS retrieval, exact recall, typed insufficient-evidence results, and retrieval eval discipline. It is reference material only; tenant isolation, PII policy, and lead-response domain constraints in this repository override it.
+
 #### RAG Architecture
 
 **Ingestion pipeline** (offline / scheduled):
@@ -159,7 +161,7 @@ query analyze -> retrieve -> filter -> assemble evidence -> answer | insufficien
 | Stage | Description | Technology |
 |-------|-------------|------------|
 | Query analyze | Normalize customer question, infer allowed topic, and optionally rewrite for retrieval. | Deterministic normalization plus optional small-model rewrite. |
-| Retrieve | Tenant-scoped vector search with metadata filters. | pgvector query through parameterized SQLAlchemy. |
+| Retrieve | Tenant-scoped vector search with metadata filters, plus optional PostgreSQL FTS candidate retrieval fused with vector candidates when eval proves it improves recall. | pgvector query through parameterized SQLAlchemy; FTS/RRF pattern may follow `docs/RAG_REFERENCE.md`. |
 | Filter | Drop stale, wrong-tenant, wrong-vertical, or low-score chunks. | Deterministic score and metadata checks. |
 | Assemble evidence | Build numbered evidence snippets for the reply drafter. | XML-like evidence envelope with source IDs. |
 | Answer / insufficient_evidence | Draft an answer only when evidence meets coverage threshold; otherwise return `insufficient_evidence` and create handoff. | Reply policy service plus LLM structured output. |
@@ -187,11 +189,13 @@ query analyze -> retrieve -> filter -> assemble evidence -> answer | insufficien
 #### Index Strategy
 
 - Embedding model: stable text embedding model selected in implementation task T09 and recorded in `docs/retrieval_eval.md`.
-- Chunking: heading/section-aware chunks with deterministic metadata; target chunk size and overlap recorded in T09.
+- Chunking: heading/section-aware chunks with deterministic metadata; target chunk size and overlap recorded in T09. Prefer token-aware chunking once the embedding model/tokenizer is selected.
 - Vector dimensions / representation contract: recorded in index schema version `rag-index-v1` after the provider is selected.
 - Index schema version: `rag-index-v1`; changes require ADR and full re-index.
+- Index implementation: PostgreSQL + pgvector by default; add an HNSW cosine index when corpus size or latency evidence justifies it.
+- Exact recall: add deterministic FTS/exact-match retrieval for concrete business terms that must not be hidden by vector thresholds.
 - Max index age: 24 hours for active tenant corpora.
-- Evaluation plan: seed at least 10 representative queries covering pricing, service area, booking, cancellation, unsupported topic, and escalation cases; track hit@3, citation precision, no-answer accuracy, and retrieval latency.
+- Evaluation plan: seed at least 10 representative queries covering pricing, service area, booking, cancellation, unsupported topic, stale/unknown policy, and tenant-isolation cases; track hit@3, hit@5, MRR, citation precision, no-answer accuracy, and retrieval latency.
 
 #### Risks
 
@@ -394,6 +398,7 @@ The runtime loop is: receive inbound event -> load conversation state -> classif
 
 - Canonical truth: `docs/ARCHITECTURE.md`, `docs/IMPLEMENTATION_CONTRACT.md`, `docs/spec.md`, `docs/tasks.md`, `docs/CODEX_PROMPT.md`, ADRs, eval artifacts, tests, code, and review reports.
 - Retrieval convenience: `docs/DECISION_LOG.md`, `docs/IMPLEMENTATION_JOURNAL.md`, `docs/EVIDENCE_INDEX.md`, and task `Context-Refs`.
+- Execution model: Codex-only direct execution. There is no Claude runtime and no `codex exec` invocation from inside Codex in the active workflow.
 - Scoped retrieval is mandatory before changing architecture, runtime tier, auth, tenant boundaries, PII policy, retrieval semantics, tool side effects, agent loop rules, open findings, or heavy-task evidence.
 - Journal notes are not proof when a test, eval, or audit report exists.
 

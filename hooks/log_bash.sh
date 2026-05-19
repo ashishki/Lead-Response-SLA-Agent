@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # PostToolUse hook: log_bash.sh
 # Logs every Bash command (with exit code) to docs/hooks_log.txt.
-# Extracts IMPLEMENTATION_RESULT from codex exec invocations.
 #
-# Runs async (async: true in settings.json) — does not block the Orchestrator.
+# Legacy optional hook. This project is Codex-only and does not invoke Codex
+# through a nested CLI command.
 #
 # Configuration:
 #   PLAYBOOK_HOOKS_LOG   path to the log file (default: docs/hooks_log.txt)
@@ -26,12 +26,6 @@ d = json.load(sys.stdin)
 print(d.get('tool_response', {}).get('exit_code', '?'))
 " 2>/dev/null || echo "?")
 
-STDOUT=$(echo "$INPUT" | python3 -c "
-import sys, json
-d = json.load(sys.stdin)
-print(d.get('tool_response', {}).get('stdout', '')[:800])
-" 2>/dev/null || echo "")
-
 LOG_FILE="${PLAYBOOK_HOOKS_LOG:-docs/hooks_log.txt}"
 mkdir -p "$(dirname "$LOG_FILE")"
 
@@ -46,13 +40,5 @@ fi
 TASK_TAG="${CURRENT_TASK:-?}"
 
 echo "[$TIMESTAMP] [TASK:${TASK_TAG}] EXIT=${EXIT_CODE}  ${STATUS}  ${COMMAND}" >> "$LOG_FILE"
-
-# For codex exec/run: extract IMPLEMENTATION_RESULT line from stdout
-if echo "$COMMAND" | grep -qE "codex (exec|run)"; then
-  RESULT=$(echo "$STDOUT" | grep -oE "IMPLEMENTATION_RESULT: (DONE|BLOCKED)" | tail -1 || true)
-  if [ -n "$RESULT" ]; then
-    echo "[$TIMESTAMP]   └─ ${RESULT}" >> "$LOG_FILE"
-  fi
-fi
 
 exit 0

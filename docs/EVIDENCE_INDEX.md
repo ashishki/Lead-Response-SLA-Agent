@@ -15,6 +15,7 @@ This file indexes durable proof so agents can retrieve prior evidence quickly. I
 | Tool-Use baseline plan | eval | `docs/tool_eval.md` | Tool schema and side-effect eval scenarios | 2026-05-19 | Yes |
 | Agent loop baseline plan | eval | `docs/agent_eval.md` | Agent termination, handoff, and allowed-action eval scenarios | 2026-05-19 | Yes |
 | NFR baseline plan | nfr | `docs/nfr.md` | Latency and operational targets for pilot | 2026-05-19 | Yes |
+| RAG reference patterns | reference | `docs/RAG_REFERENCE.md` | Dream Motif Interpreter RAG patterns selected for adaptation | 2026-05-19 | No |
 | Bootstrap decisions | decision log | `docs/DECISION_LOG.md` | Initial solution shape, profiles, runtime, retrieval mode, approval boundaries | 2026-05-19 | No |
 | Bootstrap handoff | journal note | `docs/IMPLEMENTATION_JOURNAL.md` | Session-level continuity for the generated Phase 1 package | 2026-05-19 | No |
 

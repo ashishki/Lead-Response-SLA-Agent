@@ -27,4 +27,6 @@ One row per validation or review cycle.
 ## Notes
 
 - PHASE1 validator result is PASS after adding email provider runtime contract entries.
+- Workflow adjusted after validation for Codex-only execution: no Claude command entrypoint and no `codex exec` calls from inside Codex.
+- PHASE1 validator re-run after Codex-only and RAG eval updates remains PASS with 0 blockers and 0 warnings.
 - Optional simplification passes use a separate row prefix `SIMP-N` and live in `docs/audit/SIMPLIFICATION_REPORT.md`.

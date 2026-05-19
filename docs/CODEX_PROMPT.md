@@ -6,6 +6,8 @@ Phase: 1
 
 This file is the single source of truth for current implementation state. Update it before phase boundaries and before handing a task to Codex when state changes.
 
+Execution mode: Codex-only. There is no Claude Code runtime for this project, and Codex must not invoke Codex through `codex exec` or any nested Codex CLI call.
+
 ---
 
 ## Current State
@@ -15,6 +17,7 @@ This file is the single source of truth for current implementation state. Update
 - Ruff: not yet configured
 - Last CI: not yet configured
 - Last updated: 2026-05-19
+- Execution mode: Codex-only, direct task execution
 - Session tokens (approx): not yet tracked
 - Cumulative phase tokens (approx): not yet tracked
 
@@ -28,6 +31,8 @@ This file is the single source of truth for current implementation state. Update
 - Architecture: `docs/ARCHITECTURE.md`
 - Specification: `docs/spec.md`
 - Task graph: `docs/tasks.md`
+- Orchestrator: `docs/prompts/ORCHESTRATOR.md` (Codex-native, no Codex CLI nesting)
+- RAG reference: `docs/RAG_REFERENCE.md`
 - Task-scoped context: read `Context-Refs` in `docs/tasks.md` before broad searching.
 
 ---
@@ -41,6 +46,7 @@ Task digest:
 - Add FastAPI app entrypoint, settings loader, dependency files, and expected module layout.
 - Acceptance criteria live in `docs/tasks.md#t01-project-skeleton`.
 - Applicable contract rules: no credentials in source, required env vars documented, PII-safe defaults, one logical commit.
+- Execution note: implement T01 directly in the active Codex session; do not invoke Codex through `codex exec`.
 
 ---
 
@@ -170,11 +176,12 @@ No completed phases yet.
 1. Read `docs/IMPLEMENTATION_CONTRACT.md` before starting any task.
 2. Read the full task definition in `docs/tasks.md` before writing code.
 3. Read all `Depends-On` task summaries and task `Context-Refs`.
-4. Run `pytest` to capture the current baseline before making changes.
-5. Run `ruff check src/lead_sla_agent tests` before making changes once the project skeleton exists.
-6. Write tests before or alongside implementation. Every acceptance criterion has a passing test.
-7. Update active eval artifacts when a task uses a profile trigger tag.
-8. Update this file at phase boundaries and when baseline, next task, open findings, or profile state changes.
-9. Commit with format `type(scope): description`, one logical change per commit, and no AI co-author trailers.
-10. When done, return `IMPLEMENTATION_RESULT: DONE` with the new baseline and what changed.
-11. When blocked, return `IMPLEMENTATION_RESULT: BLOCKED` with the exact blocker and the smallest unblock step.
+4. Do the work directly in the current Codex session; do not call `codex exec`.
+5. Run `pytest` to capture the current baseline before making changes once tests exist.
+6. Run `ruff check src/lead_sla_agent tests` before making changes once the project skeleton exists.
+7. Write tests before or alongside implementation. Every acceptance criterion has a passing test.
+8. Update active eval artifacts when a task uses a profile trigger tag.
+9. Update this file at phase boundaries and when baseline, next task, open findings, or profile state changes.
+10. Commit with format `type(scope): description`, one logical change per commit, and no AI co-author trailers when the user asks for a commit.
+11. When done, return `IMPLEMENTATION_RESULT: DONE` with the new baseline and what changed.
+12. When blocked, return `IMPLEMENTATION_RESULT: BLOCKED` with the exact blocker and the smallest unblock step.

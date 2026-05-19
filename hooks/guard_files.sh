@@ -2,7 +2,8 @@
 # PreToolUse hook: guard_files.sh
 # Blocks runtime writes to immutable playbook files.
 #
-# Triggered by Claude Code before Write, Edit, or MultiEdit tool execution.
+# Legacy optional hook. This project is Codex-only and does not use a Claude
+# command entrypoint.
 #
 # Configuration:
 #   PLAYBOOK_PROTECTED_FILES  colon-separated list of protected paths (relative to
@@ -11,7 +12,7 @@
 #
 # Exit codes:
 #   0  Allow the write to proceed
-#   2  Block the write; stderr message is fed back to Claude as the reason
+#   2  Block the write; stderr message is fed back to the caller as the reason
 
 set -euo pipefail
 

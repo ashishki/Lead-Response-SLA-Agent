@@ -35,8 +35,12 @@ None.
 
 ## Check Notes
 
+- Re-run on 2026-05-19 after Codex-only workflow, no-`codex exec`, and RAG eval discipline updates confirmed the same PASS result.
 - `.github/workflows/ci.yml` parsed as YAML with Python/PyYAML.
 - B-11 recheck passed: `Email provider` has matching `EMAIL_API_KEY` and `EMAIL_SENDER` runtime contract entries and CI placeholder env values.
+- Post-validation workflow adjustment: active orchestration is Codex-only via `docs/prompts/ORCHESTRATOR.md`; Claude command entrypoints and `codex exec` calls from inside Codex are forbidden.
+- Post-validation RAG reference added: `docs/RAG_REFERENCE.md` links Dream Motif Interpreter as reference-only material for T09/T10. This does not change active profile status or Phase 1 pass result.
+- Post-validation RAG eval discipline strengthened: `docs/retrieval_eval.md` now rejects eval rows without Eval Source, Date, Corpus version, Dataset, Metrics, Root cause, Result, and Notes.
 - `docs/tasks.md` contains 18 task blocks. Every task has Owner, Phase, Type, Depends-On, Objective, Acceptance-Criteria, and Files fields.
 - Every task acceptance criterion has a `test:` reference in `path/file.py::test_function` format.
 - No forbidden vague acceptance-criteria phrases were found in `docs/tasks.md` or `docs/spec.md`.

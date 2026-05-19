@@ -5,6 +5,15 @@ Last updated: 2026-04-13
 
 ---
 
+## Project Override - Lead Response SLA Agent
+
+This repository runs the workflow directly in Codex. There is no Claude Code
+runtime, no `.claude` command entrypoint, and no `codex exec` call from inside
+an active Codex session. If generic upstream playbook language conflicts with
+`docs/prompts/ORCHESTRATOR.md`, the project-local Codex-only orchestrator wins.
+
+---
+
 ## 1. Philosophy
 
 ### AI-Assisted Development
@@ -33,7 +42,7 @@ The repository is easiest to evolve safely if you interpret it through four logi
 1. **Policy / Governance** — phases, contracts, review policy, stop conditions, immutable rules
 2. **Proof / Evidence** — explicit evidence collection, evaluation artifacts, selective proof-first handling for risky work
 3. **Optional Execution Patterns** — parallel subagents, isolated worktrees, fanout/merge, runtime selection
-4. **Harness / Packaging** — hooks, Claude Code settings, bootstrap, templates, install story
+4. **Harness / Packaging** — Codex state files, templates, optional hooks, install story
 
 This interpretation does not replace the operational layer map below. It clarifies what the playbook is optimizing for: governance first, execution substrate second.
 
@@ -88,7 +97,7 @@ Guardrails:
 
 To avoid burning one model family's limits unnecessarily, distribute work by role:
 
-- **Claude / architecture-grade model**: Strategist, Phase 1 Validator, phase-boundary strategy review, deep review, architectural ambiguity resolution
+- **Codex review session / architecture-grade model**: Strategist, Phase 1 Validator, phase-boundary strategy review, deep review, architectural ambiguity resolution
 - **Codex / implementation-grade model**: task execution, narrow-scope fixes, tests, lint, local refactors within declared file scope
 
 Operational rules:
@@ -797,13 +806,15 @@ With the ritual, the orchestrator drives the entire cycle from a single paste. T
 
 ### How It Works
 
-Every session begins with a single action:
+For this project, every session begins with a direct Codex instruction:
 
 ```
-/orchestrate
+continue from docs/prompts/ORCHESTRATOR.md
 ```
 
-This slash command reads `docs/prompts/ORCHESTRATOR.md` and executes it. It is installed automatically when a project is bootstrapped — the file lives at `.claude/commands/orchestrate.md`. If the command is not available (e.g. legacy project), fall back to pasting the full contents of `docs/prompts/ORCHESTRATOR.md` manually.
+Codex reads `docs/prompts/ORCHESTRATOR.md` and executes the workflow directly
+in the current session. There is no `.claude/commands/orchestrate.md` entrypoint
+and no nested Codex CLI invocation.
 
 The orchestrator then:
 1. Reads `docs/CODEX_PROMPT.md` and `docs/tasks.md` to determine current state
@@ -827,7 +838,7 @@ Every project's `docs/prompts/ORCHESTRATOR.md` must have all 7 steps filled in w
 |---|---|
 | Project name | Used in all agent system prompts |
 | Project root | Absolute path on disk |
-| Implementation agent command | `codex exec` or `Agent tool (general-purpose)` — whichever is available |
+| Implementation agent command | Direct active Codex session; do not invoke Codex through a nested CLI command |
 | Test command | `pytest tests/ -q` or `python3 -m unittest discover tests/ -q` |
 | Lint command | `ruff check` or skip if not enforced |
 | Notification channel | Telegram bot, Slack, desktop notify, or remove if not needed |
@@ -1048,7 +1059,7 @@ PROMPT_1 (META) and PROMPT_2 (ARCH) can run concurrently — they read different
 
 A user-triggered pass focused on reducing redundancy, dead code, over-abstraction, and over-comment density. Runs separately from the mandatory META → ARCH → CODE → CONSOLIDATED cycle. It is opt-in and experimental — see §8 Experiment E5 in the integration assessment.
 
-- **Trigger:** explicit user invocation (e.g. via `templates/.claude/commands/simplify.md`). Never automatic. Never part of the mandatory phase-boundary cycle.
+- **Trigger:** explicit user invocation in Codex. Never automatic. Never part of the mandatory phase-boundary cycle.
 - **Scope:** a user-named file or directory list, or — only as fallback — the scope from the most recent META analysis.
 - **Output:** `docs/audit/SIMPLIFICATION_REPORT.md` (overwrite per pass; row prefix `SIMP-N` so it does not collide with `CYCLE-N`).
 - **Approved simplifications** become normal Codex tasks with behavior-preservation acceptance criteria — existing tests pass, a new test pins the prior behavior when needed, and the complexity metric improves by a stated delta. The task runs through normal light or deep review like any other.
@@ -1374,21 +1385,23 @@ Observability operates at three independent layers. Each layer addresses a diffe
 
 ---
 
-### Layer 1: Process observability — Claude Code hooks
+### Layer 1: Process observability — optional hooks
 
-Hooks execute at the shell process level, independent of LLM decisions. They enforce the hardest-to-enforce rules and provide an independent audit trail.
+Hooks execute at the shell process level when a compatible runner wires them in.
+For this project they are optional legacy support only; Codex remains the active
+runtime and must not invoke Codex through a nested CLI command.
 
 | Hook event | File | What it does |
 |-----------|------|-------------|
 | `PreToolUse(Write\|Edit\|MultiEdit)` | `hooks/guard_files.sh` | Blocks writes to `docs/IMPLEMENTATION_CONTRACT.md`, `prompts/ORCHESTRATOR.md`, and `docs/audit/AUDIT_INDEX.md`. Exit 2 stops the tool and feeds the reason back to the Orchestrator. |
-| `PostToolUse(Bash)` | `hooks/log_bash.sh` | Appends every Bash command and its exit code to `docs/hooks_log.txt`, tagged with `[TASK:T##]` when `CURRENT_TASK` env var is set by the orchestrator's Execute block. For `codex exec` invocations, also extracts and logs `IMPLEMENTATION_RESULT: DONE\|BLOCKED`. Async — does not slow the Orchestrator. |
-| `Stop` | `hooks/save_checkpoint.sh` | Writes active task, Fix Queue size, and timestamp to `/tmp/orchestrator_checkpoint.md` whenever the Claude Code session ends. If `NOTIFICATION_TOKEN` and `NOTIFICATION_TARGET` env vars are set and `SILENT` ≠ 1, also sends a brief resume summary to the configured notification channel. Set `SILENT=1` for automated or cron-driven sessions to suppress delivery while still writing the checkpoint file. |
+| `PostToolUse(Bash)` | `hooks/log_bash.sh` | Appends every Bash command and its exit code to `docs/hooks_log.txt`, tagged with `[TASK:T##]` when `CURRENT_TASK` env var is set. |
+| `Stop` | `hooks/save_checkpoint.sh` | Writes active task, Fix Queue size, and timestamp to `/tmp/orchestrator_checkpoint.md` for compatible hook runners. If `NOTIFICATION_TOKEN` and `NOTIFICATION_TARGET` env vars are set and `SILENT` is not `1`, also sends a brief resume summary to the configured notification channel. |
 
-**Activation** (per project, not in this template repo):
+**Activation** (optional, for compatible hook runners only):
 1. Copy `hooks/` from the playbook to your project root.
-2. Copy `templates/.claude/settings.json` to `.claude/settings.json` in your project root.
+2. Wire the hook runner outside the active Codex session.
 3. Make scripts executable: `chmod +x hooks/*.sh`
-4. Verify: Claude Code will now block writes to protected files and log all Bash commands.
+4. Verify: the runner blocks protected-file writes and logs shell commands.
 
 Override the protected file list via `PLAYBOOK_PROTECTED_FILES` env var (colon-separated paths). Override the log path via `PLAYBOOK_HOOKS_LOG`.
 
@@ -1396,7 +1409,7 @@ Per-session env vars:
 
 | Variable | Hook | Effect |
 |----------|------|--------|
-| `CURRENT_TASK=T07` | `log_bash.sh` | Tags every log line with the active task ID — set this in the orchestrator's Execute block before each `codex exec` call |
+| `CURRENT_TASK=T07` | `log_bash.sh` | Tags every log line with the active task ID |
 | `SILENT=1` | `save_checkpoint.sh` | Suppresses session-end notification; checkpoint file is still written — use for cron or automated sessions |
 | `NOTIFICATION_TOKEN=<bot_token>` | `save_checkpoint.sh` | Telegram bot token for session-end push — omit to disable |
 | `NOTIFICATION_TARGET=<chat_id>` | `save_checkpoint.sh` | Telegram chat ID for session-end push — omit to disable |

@@ -6,6 +6,8 @@ Effective date: 2026-05-19
 
 Any agent may cite this document as the authority on implementation rules. Any implementation that violates this contract is a P1 finding unless a more severe classification is stated.
 
+Execution model: Codex-only. There is no Claude Code runtime for this project, and active Codex sessions must not invoke Codex through `codex exec` or any nested Codex CLI call. Codex performs task implementation directly in the current workspace.
+
 ---
 
 ## Universal Rules
@@ -154,12 +156,13 @@ Violation: automatic P1 for real credential exposure; P2 for tests that require 
 2. Read the target task in `docs/tasks.md`.
 3. Read the task's `Depends-On` summaries and `Context-Refs`.
 4. If the task is heavy, changes risky boundaries, or has a profile trigger tag, read the matching eval artifact and decision log entries.
-5. Run `python -m pytest tests/ -q` to capture the current baseline after tests exist.
-6. Run `ruff check src/lead_sla_agent tests` and `ruff format --check src/lead_sla_agent tests` after the project skeleton exists.
-7. Do not write implementation code before understanding the acceptance criteria and required test functions.
-8. Write or update tests for every acceptance criterion.
-9. Update eval artifacts when a task has RAG, Tool-Use, or Agentic trigger tags.
-10. Update `docs/CODEX_PROMPT.md` when baseline, next task, findings, or profile state changes.
+5. Do the task directly in the active Codex session; do not call `codex exec`.
+6. Run `python -m pytest tests/ -q` to capture the current baseline after tests exist.
+7. Run `ruff check src/lead_sla_agent tests` and `ruff format --check src/lead_sla_agent tests` after the project skeleton exists.
+8. Do not write implementation code before understanding the acceptance criteria and required test functions.
+9. Write or update tests for every acceptance criterion.
+10. Update eval artifacts when a task has RAG, Tool-Use, or Agentic trigger tags.
+11. Update `docs/CODEX_PROMPT.md` when baseline, next task, findings, or profile state changes.
 
 ---
 
@@ -177,6 +180,7 @@ Violation: automatic P1 for real credential exposure; P2 for tests that require 
 | Merging with failing CI | The CI gate exists to prevent unverified changes. |
 | Committing credentials or secrets | Credential exposure is irreversible. |
 | Unauthorized runtime-tier expansion | T2/T3 behaviors require explicit architecture approval. |
+| Calling `codex exec` from an active Codex session | This project is Codex-only and tasks run directly in the current workspace. |
 | Customer-facing answer after `insufficient_evidence` | Unsupported answers create trust and liability risk. |
 | Side-effecting tool call without required idempotency key | Duplicate provider actions can affect customers and CRM records. |
 
@@ -189,9 +193,9 @@ Violation: automatic P1 for real credential exposure; P2 for tests that require 
 - One logical change per commit. Do not bundle unrelated migrations, service logic, and review fixes.
 - Commit messages use `type(scope): description`.
 - No AI `Co-authored-by` trailers in commits.
-- Implementation agents do not review their own output.
-- Review agents do not write code.
-- Orchestrator does not write application code.
+- A Codex session that wrote a change may perform verification, but must not label that verification as independent review.
+- Independent review requires a fresh Codex session or human reviewer.
+- Review passes do not write application code.
 
 ---
 
@@ -210,6 +214,8 @@ Applies because RAG Profile is ON.
 - Maximum index age is 24 hours for active tenant corpora.
 - Health checks expose retrieval freshness without PII.
 - A retrieval task is not complete until `docs/retrieval_eval.md` is updated with current metrics and compared to baseline.
+- Every retrieval eval history row must include Date, Eval Source, Corpus version, Dataset, Metrics, Root cause, Result, and Notes. Missing or vague Eval Source makes the evaluation invalid.
+- Retrieval quality and answer quality are separate gates. Green tests or good answer-quality scores do not close retrieval metric regressions.
 
 ---
 

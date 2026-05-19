@@ -341,9 +341,10 @@ Files:
 Context-Refs:
   - docs/ARCHITECTURE.md#profile-rag
   - docs/IMPLEMENTATION_CONTRACT.md#rag-rules
+  - docs/RAG_REFERENCE.md#implementation-notes-for-t09t10
 
 Notes: |
-  Retrieval mode is text-only. Selecting a concrete embedding model updates docs/retrieval_eval.md and docs/DECISION_LOG.md.
+  Retrieval mode is text-only. Selecting a concrete embedding model updates docs/retrieval_eval.md and docs/DECISION_LOG.md. Use Dream Motif Interpreter only as a pattern reference for source contracts, normalized document flow, idempotent ingestion, token-aware chunking, and shared embedding adapter shape.
 
 Execution-Mode: heavy
 Evidence:
@@ -371,7 +372,7 @@ Acceptance-Criteria:
     description: "Unsupported questions return result status `insufficient_evidence` with no answer text and create a human-review task. Verified by tests/integration/test_retrieval_query.py::test_unsupported_query_creates_insufficient_evidence_handoff."
     test: "tests/integration/test_retrieval_query.py::test_unsupported_query_creates_insufficient_evidence_handoff"
   - id: AC-3
-    description: "Retrieval eval computes hit@3, citation precision, no-answer accuracy, and retrieval latency for the seed dataset. Verified by tests/eval/test_retrieval_eval.py::test_retrieval_eval_computes_seed_metrics."
+    description: "Retrieval eval computes hit@3, hit@5, MRR, citation precision, no-answer accuracy, and retrieval latency for the seed dataset, and writes an Evaluation History row with Date, Eval Source, Corpus version, Dataset, Metrics, Root cause, Result, and Notes. Verified by tests/eval/test_retrieval_eval.py::test_retrieval_eval_computes_seed_metrics."
     test: "tests/eval/test_retrieval_eval.py::test_retrieval_eval_computes_seed_metrics"
 
 Files:
@@ -386,9 +387,10 @@ Files:
 Context-Refs:
   - docs/ARCHITECTURE.md#profile-rag
   - docs/IMPLEMENTATION_CONTRACT.md#rag-rules
+  - docs/RAG_REFERENCE.md#implementation-notes-for-t09t10
 
 Notes: |
-  Do not draft an answer in retrieval code. Return evidence or `insufficient_evidence`; reply drafting belongs to the conversation layer.
+  Do not draft an answer in retrieval code. Return evidence or `insufficient_evidence`; reply drafting belongs to the conversation layer. Use Dream Motif Interpreter as a pattern reference for typed evidence, typed insufficient-evidence result, hybrid vector+FTS/RRF, and exact keyword recall, but add tenant isolation and PII-safe query logging.
 
 Execution-Mode: heavy
 Evidence:
@@ -646,7 +648,7 @@ Acceptance-Criteria:
     description: "CI runs `tests/eval/test_retrieval_eval.py`, `tests/eval/test_tool_eval.py`, and `tests/eval/test_agent_eval.py` in separate named steps. Verified by tests/unit/test_ci_eval_gates.py::test_ci_runs_active_profile_eval_steps."
     test: "tests/unit/test_ci_eval_gates.py::test_ci_runs_active_profile_eval_steps"
   - id: AC-2
-    description: "Each active profile eval artifact contains a baseline row with date, dataset/version, metrics, result, and regression rule. Verified by tests/eval/test_eval_artifacts.py::test_active_eval_artifacts_have_baseline_rows."
+    description: "Each active profile eval artifact contains a baseline row with date, eval source, dataset/version, metrics, root-cause classification, result, and regression rule. Verified by tests/eval/test_eval_artifacts.py::test_active_eval_artifacts_have_baseline_rows."
     test: "tests/eval/test_eval_artifacts.py::test_active_eval_artifacts_have_baseline_rows"
   - id: AC-3
     description: "A simulated retrieval no-answer regression causes the retrieval eval test to fail. Verified by tests/eval/test_eval_artifacts.py::test_retrieval_no_answer_regression_fails_eval."

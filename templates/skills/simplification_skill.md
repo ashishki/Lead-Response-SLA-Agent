@@ -14,8 +14,7 @@ but unnecessarily complex". They are complementary, not overlapping.
 
 ## Trigger
 
-- Explicit user invocation, e.g. via
-  `templates/.claude/commands/simplify.md`.
+- Explicit user invocation in Codex.
 - NEVER automatic. NEVER part of the mandatory phase-boundary cycle.
 
 ## Allowed Role
@@ -106,4 +105,5 @@ always wins.
 
 ## Companion Command
 
-`templates/.claude/commands/simplify.md`
+No project-local Claude command is used. Invoke the simplification pass directly
+from Codex when needed.
