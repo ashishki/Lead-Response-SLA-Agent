@@ -25,6 +25,84 @@ This file records durable handoff context across agents and sessions. It is not 
 
 ## Entries
 
+### 2026-05-20 - Phase 15 Review - Multi-Tenant SaaS Scale
+
+- Scope: T47-T49, `docs/audit/PHASE15_REVIEW.md`, `docs/audit/AUDIT_INDEX.md`, `docs/CODEX_PROMPT.md`.
+- Why this work happened: Phase 15 tasks completed and the orchestrator requires a phase-boundary verification artifact before closing the active task graph.
+- Decisions applied: none
+- Evidence collected: `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 170 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed.
+- Follow-ups: active task graph T19-T49 is complete.
+- Notes for next agent: this was a same-session verification pass, not an independent review.
+
+### 2026-05-20 - T49 - Staging and Production Release Discipline
+
+- Scope: `.github/workflows/ci.yml`, `.github/workflows/deploy.yml`, `docs/runbook.md`, `docs/release_template.md`, `tests/unit/test_ci_workflow.py`, `tests/unit/test_ci_eval_gates.py`, `tests/unit/test_deployment_docs.py`.
+- Why this work happened: T49 required staging/prod separation, migration policy, CI/CD gates, release notes, and rollback validation.
+- Decisions applied: split CI into lint/format, unit, integration, eval, and deployment checks; added manual deployment workflow with staging-before-production promotion; documented release notes and rollback validation.
+- Evidence collected: `.venv/bin/python -m pytest tests/unit/test_ci_eval_gates.py tests/unit/test_ci_workflow.py tests/unit/test_deployment_docs.py -q --tb=short` -> 10 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 170 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; CI distinguishes unit, integration, eval, and deployment checks; deploy workflow runs staging migrations/smoke tests before production and validates rollback assets.
+- Follow-ups: complete Phase 15 review.
+- Notes for next agent: workflows define release discipline but still need real environment secrets and deployment commands before production use.
+
+### 2026-05-20 - T48 - Usage Metering and Billing Readiness
+
+- Scope: `src/lead_sla_agent/billing/usage.py`, `tests/integration/test_usage_metering.py`.
+- Why this work happened: T48 required tenant-scoped usage dimensions for pricing and billing readiness.
+- Decisions applied: implemented append-only usage events and PII-safe monthly exports that map usage to Recovery Pilot, Booked-Lead Share, and Dispatcher Assist pricing experiments.
+- Evidence collected: `.venv/bin/python -m pytest tests/integration/test_usage_metering.py -q --tb=short` -> 5 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 167 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; exports count leads processed, AI-assisted replies, provider sends, review tasks, bookings, active channels, and provider sends by provider; PII metadata is rejected.
+- Follow-ups: continue to T49 Staging/Production Release Discipline.
+- Notes for next agent: usage meter is in-memory and should be backed by persistent append-only storage before paid production billing.
+
+### 2026-05-20 - T47 - Tenant Admin and Configuration
+
+- Scope: `src/lead_sla_agent/operator/tenant_admin.py`, `tests/integration/test_tenant_admin.py`.
+- Why this work happened: T47 required tenant admin configuration for channels, business hours, required fields, max turns, handoff policy, and provider settings.
+- Decisions applied: implemented an in-memory versioned tenant config store; safe fields can be updated by operator role, dangerous policy/autonomous changes require owner role or approval ID, and every change appends an audit event.
+- Evidence collected: `.venv/bin/python -m pytest tests/integration/test_tenant_admin.py -q --tb=short` -> 4 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 162 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; safe updates version config, dangerous changes require owner or approval, unknown fields are rejected, and audit history is tenant-scoped.
+- Follow-ups: continue to T48 Usage Metering and Billing Readiness.
+- Notes for next agent: store is in-memory policy contract and should be backed by persistent configuration storage before multi-customer production.
+
+### 2026-05-20 - Phase 14 Review - Sales-Ready MVP
+
+- Scope: T44-T46, `docs/audit/PHASE14_REVIEW.md`, `docs/audit/AUDIT_INDEX.md`, `docs/CODEX_PROMPT.md`.
+- Why this work happened: Phase 14 tasks completed and the orchestrator requires a phase-boundary verification artifact before continuing.
+- Decisions applied: none
+- Evidence collected: `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 158 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed.
+- Follow-ups: continue to T47 Tenant Admin and Configuration.
+- Notes for next agent: this was a same-session verification pass, not independent review.
+
+### 2026-05-20 - T46 - Support and Operations Process
+
+- Scope: `docs/support/runbook.md`, `docs/support/incident_template.md`, `docs/support/customer_templates.md`, `tests/unit/test_support_docs.py`.
+- Why this work happened: T46 required a support process for pilot customers: issue intake, severity, response SLA, escalation, post-incident review, incident template, and customer templates.
+- Decisions applied: support docs require PII-free incident notes and customer updates; Sev1 includes unsafe autonomous reply, data exposure, customer-facing outage, or all lead intake blocked.
+- Evidence collected: `.venv/bin/python -m pytest tests/unit/test_support_docs.py -q --tb=short` -> 3 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 158 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; severity levels, first-response expectations, escalation paths, incident template, provider outage templates, and AI safety handoff templates are present.
+- Follow-ups: complete Phase 14 review, then continue to T47 Tenant Admin and Configuration.
+- Notes for next agent: support process is a pilot runbook and should be wired into ticketing only after first paying customers.
+
+### 2026-05-20 - T45 - Demo Tenant and Sales Sandbox
+
+- Scope: `seed/demo_tenant/template.json`, `scripts/reset_demo_tenant.py`, `tests/integration/test_demo_tenant.py`.
+- Why this work happened: T45 required a safe demo tenant with seed leads, corpus, review tasks, analytics, and reset command for repeatable sales calls.
+- Decisions applied: demo state uses synthetic scenario records and contact refs only; reset script writes a known state from template and can target a temp path for tests or sales setup.
+- Evidence collected: `.venv/bin/python -m pytest tests/integration/test_demo_tenant.py -q --tb=short` -> 4 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 155 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; demo contains supported FAQ, unsupported handoff, booking proposal, and operator approval scenarios; PII scan passes; reset command restores known state.
+- Follow-ups: continue to T46 Support and Operations Process.
+- Notes for next agent: default reset output is `seed/demo_tenant/state.json`; tests write to temporary output paths to avoid repo churn.
+
+### 2026-05-20 - T44 - Assisted Onboarding Workflow
+
+- Scope: `scripts/onboard_tenant.py`, `seed/verticals/garage_door_repair/onboarding_questions.json`, `tests/integration/test_onboarding_flow.py`, `docs/runbook.md`.
+- Why this work happened: T44 required a guided setup flow for tenant creation, provider connection, knowledge upload, operator accounts, and test lead validation.
+- Decisions applied: implemented a deterministic sandbox onboarding CLI that uses the garage-door vertical pack, hashes operator email, validates at least 10 tenant knowledge questions, simulates provider send/receive, and tests operator approval path without real provider credentials.
+- Evidence collected: `.venv/bin/python -m pytest tests/integration/test_onboarding_flow.py -q --tb=short` -> 5 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 151 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; checklist fits within one working day, provider sandbox passes, 10 tenant questions validate against approved corpus, and operator approval path returns sent status.
+- Follow-ups: continue to T45 Demo Tenant and Sales Sandbox.
+- Notes for next agent: onboarding CLI intentionally outputs hashed operator email only.
+
 ### 2026-05-20 - Phase 13 Review - Revenue Validation
 
 - Scope: T41-T43, `docs/audit/PHASE13_REVIEW.md`, `docs/audit/AUDIT_INDEX.md`, `docs/CODEX_PROMPT.md`.
