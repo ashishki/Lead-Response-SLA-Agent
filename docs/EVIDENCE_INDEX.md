@@ -18,6 +18,7 @@ This file indexes durable proof so agents can retrieve prior evidence quickly. I
 | RAG reference patterns | reference | `docs/RAG_REFERENCE.md` | Dream Motif Interpreter RAG patterns selected for adaptation | 2026-05-19 | No |
 | Active profile eval gates | CI/test | `.github/workflows/ci.yml`, `tests/eval/` | Retrieval, Tool-Use, and Agentic eval gates in CI | 2026-05-19 | Yes |
 | Active production task graph | task graph | `docs/tasks.md` | T19-T49 development-loop tasks after completed prototype | 2026-05-19 | Yes |
+| Production readiness hardening backlog | task graph | `docs/tasks.md`, `docs/CODEX_PROMPT.md` | T50-T69 phases for data durability, deployment hardening, live providers, observability, security/privacy, controlled pilot, and go/no-go production review | 2026-05-20 | Yes |
 | Completed prototype task graph | archive | `docs/archive/tasks_T01_T18_completed.md` | Historical T01-T18 task graph and acceptance scope | 2026-05-19 | No |
 | Compact loop prompt state | prompt | `docs/CODEX_PROMPT.md`, `docs/prompts/LOOP_TASK_PROMPT.md` | Current next task and per-task loop instructions without completed-task bloat | 2026-05-19 | Yes |
 | T19 persistent repositories | integration test | `tests/integration/test_persistent_repositories.py` | PostgreSQL-backed lead, conversation, transcript, review, approval, and outcome persistence plus tenant isolation and PII-safe failures | 2026-05-20 | Yes |

@@ -1,7 +1,7 @@
 # Tasks - Lead Response SLA Agent
 
-Version: 1.0
-Last updated: 2026-05-19
+Version: 1.1
+Last updated: 2026-05-20
 Status: Active development loop backlog
 
 This document is the active task graph for the next development loop. It starts after the completed T01-T18 prototype graph, which is archived at `docs/archive/tasks_T01_T18_completed.md`.
@@ -945,16 +945,656 @@ Market-Gate:
 
 ---
 
+## Phase 16 - Production Data Durability
+
+Goal: replace remaining in-memory/admin-grade contracts with durable, queryable, tenant-safe production storage.
+
+### T50: Persistent Tenant Configuration Store
+
+Owner: codex
+Phase: 16
+Type: persistence tenant:safety admin
+Depends-On: T47
+
+Objective: |
+  Replace the in-memory tenant admin store with PostgreSQL-backed versioned configuration storage for channels, business hours, required fields, max turns, handoff policy, autonomous-send policy, and provider settings.
+
+Acceptance-Criteria:
+  - AC-1: Tenant config survives process restart and is loaded by tenant ID only.
+  - AC-2: Every config mutation creates a new version and immutable audit record.
+  - AC-3: Dangerous fields still require owner role or approval ID.
+  - AC-4: Concurrent updates use optimistic locking or equivalent version conflict detection.
+  - AC-5: Cross-tenant reads and updates are denied by repository checks and PostgreSQL RLS.
+
+Files:
+  - `src/lead_sla_agent/operator/tenant_admin.py`
+  - `src/lead_sla_agent/db/tenant_config_repository.py`
+  - `alembic/versions/*_tenant_config.py`
+  - `tests/integration/test_tenant_admin_persistence.py`
+
+Evidence:
+  - PostgreSQL persistence tests.
+  - RLS isolation tests.
+  - Restart/reload test.
+
+Market-Gate:
+  - Customer policy changes can be made safely without code deploys or data loss.
+
+### T51: Persistent Usage and Billing Event Ledger
+
+Owner: codex
+Phase: 16
+Type: billing persistence privacy
+Depends-On: T48
+
+Objective: |
+  Replace in-memory usage metering with an append-only PostgreSQL ledger that supports monthly exports, pricing experiments, and future billing reconciliation.
+
+Acceptance-Criteria:
+  - AC-1: Usage events are append-only and tenant-scoped.
+  - AC-2: Duplicate event IDs are idempotent and do not inflate billing totals.
+  - AC-3: Monthly exports can be regenerated deterministically from the ledger.
+  - AC-4: Exported usage contains no raw PII and rejects unsupported metadata.
+  - AC-5: Pricing package mapping is versioned so historical invoices remain explainable.
+
+Files:
+  - `src/lead_sla_agent/billing/usage.py`
+  - `src/lead_sla_agent/db/usage_repository.py`
+  - `alembic/versions/*_usage_ledger.py`
+  - `tests/integration/test_usage_metering_persistence.py`
+
+Evidence:
+  - Ledger append-only tests.
+  - Idempotency tests.
+  - Monthly export snapshot tests with PII scan.
+
+Market-Gate:
+  - Paid pilots can be invoiced from auditable, reproducible usage data.
+
+### T52: Immutable Audit Event Store
+
+Owner: codex
+Phase: 16
+Type: audit compliance tenant:safety
+Depends-On: T50
+
+Objective: |
+  Centralize tenant-scoped audit events for approvals, config changes, provider sends, data export/delete, billing exports, and release-impacting operator actions.
+
+Acceptance-Criteria:
+  - AC-1: Audit events are append-only and include tenant ID, actor hash/ref, action, resource type, resource ID/ref, result, policy version, and timestamp.
+  - AC-2: Audit event payloads reject raw PII and secrets.
+  - AC-3: Audit search is tenant-scoped and role-gated.
+  - AC-4: Existing review, approval, data admin, tenant admin, and billing flows emit audit events.
+  - AC-5: Retention and export behavior is documented.
+
+Files:
+  - `src/lead_sla_agent/audit/events.py`
+  - `src/lead_sla_agent/db/audit_repository.py`
+  - `alembic/versions/*_audit_events.py`
+  - `docs/runbook.md`
+  - `tests/integration/test_audit_event_store.py`
+
+Evidence:
+  - Audit append-only tests.
+  - PII rejection tests.
+  - Tenant-scoped search tests.
+
+Market-Gate:
+  - Founder/operator can explain who changed what and why during a customer escalation.
+
+---
+
+## Phase 17 - Real Deployment and Environment Hardening
+
+Goal: make staging and production real environments, not just workflow placeholders.
+
+### T53: Deployment Target ADR and Infrastructure Contract
+
+Owner: human + codex
+Phase: 17
+Type: ops architecture
+Depends-On: T49
+
+Objective: |
+  Choose the first production hosting target and document the deployment contract for API, worker, PostgreSQL, Redis, migrations, secrets, logs, metrics, backups, and rollback.
+
+Acceptance-Criteria:
+  - AC-1: ADR names the chosen platform and rejected alternatives.
+  - AC-2: Runtime tier remains T1 unless the ADR explicitly changes it with risk justification.
+  - AC-3: Required staging and production resources are listed with owner, backup, retention, and cost expectations.
+  - AC-4: Deployment commands and rollback commands are concrete enough to run in CI.
+
+Files:
+  - `docs/adr/ADR-004-deployment-target.md`
+  - `docs/runbook.md`
+  - `.github/workflows/deploy.yml`
+  - `tests/unit/test_deployment_target_docs.py`
+
+Evidence:
+  - ADR test.
+  - Runbook test.
+  - Deploy workflow command validation.
+
+Market-Gate:
+  - A pilot customer can be assigned to a known staging/prod environment with clear operational ownership.
+
+### T54: Staging and Production Secret Partitioning
+
+Owner: codex
+Phase: 17
+Type: security ops secrets
+Depends-On: T53
+
+Objective: |
+  Wire environment-specific configuration and secret expectations for staging and production without committing credentials.
+
+Acceptance-Criteria:
+  - AC-1: Required secrets are documented separately for local, staging, and production.
+  - AC-2: CI validates secret names and missing-secret failure behavior without printing secret values.
+  - AC-3: Provider credentials are scoped per adapter and per environment.
+  - AC-4: Rotation procedure exists and includes revocation verification.
+
+Files:
+  - `src/lead_sla_agent/config.py`
+  - `docs/runbook.md`
+  - `.github/workflows/deploy.yml`
+  - `tests/unit/test_environment_secret_contract.py`
+
+Evidence:
+  - Secret contract tests.
+  - Redaction tests.
+  - Rotation checklist.
+
+Market-Gate:
+  - Production cannot accidentally use demo, local, or staging credentials.
+
+### T55: Deployment Smoke Tests
+
+Owner: codex
+Phase: 17
+Type: ops testing reliability
+Depends-On: T54
+
+Objective: |
+  Add post-deploy smoke tests that validate health, migrations, queue connectivity, provider sandbox connectivity, operator auth, and safe handoff behavior.
+
+Acceptance-Criteria:
+  - AC-1: Smoke test command can target staging or production by URL/environment.
+  - AC-2: Smoke tests do not create real customer sends unless sandbox mode is explicitly enabled.
+  - AC-3: Smoke tests validate API health, database migration version, Redis connectivity, operator auth, and provider sandbox path.
+  - AC-4: Production deploy workflow requires staging smoke success before production promotion.
+
+Files:
+  - `scripts/smoke_test.py`
+  - `.github/workflows/deploy.yml`
+  - `docs/runbook.md`
+  - `tests/integration/test_smoke_tests.py`
+
+Evidence:
+  - Smoke test unit/integration tests.
+  - Deploy workflow gate test.
+
+Market-Gate:
+  - Releases can be promoted only after proving the core lead path still works.
+
+### T56: Rollback Rehearsal and Migration Safety
+
+Owner: codex
+Phase: 17
+Type: ops rollback database
+Depends-On: T55
+
+Objective: |
+  Turn rollback from documentation into a rehearsed command path for app rollback, migration rollback, and restore-from-backup decision points.
+
+Acceptance-Criteria:
+  - AC-1: Every new migration has downgrade coverage or an explicit irreversible rationale.
+  - AC-2: Staging rollback rehearsal records migration version before and after rollback.
+  - AC-3: Runbook defines when to rollback app only, rollback migration, or restore backup.
+  - AC-4: CI validates rollback rehearsal artifacts exist before production deploy.
+
+Files:
+  - `alembic/versions/`
+  - `scripts/rollback_check.py`
+  - `docs/runbook.md`
+  - `.github/workflows/deploy.yml`
+  - `tests/unit/test_rollback_rehearsal.py`
+
+Evidence:
+  - Rollback command tests.
+  - Migration downgrade metadata checks.
+  - Staging rehearsal artifact.
+
+Market-Gate:
+  - A failed release has a practiced recovery path before customer impact grows.
+
+---
+
+## Phase 18 - Live Provider Production Readiness
+
+Goal: move from fake/sandbox provider contracts to controlled live-provider operation.
+
+### T57: Live Messaging Provider Pilot Path
+
+Owner: human + codex
+Phase: 18
+Type: provider messaging safety
+Depends-On: T24, T55
+
+Objective: |
+  Configure the first live messaging provider for one pilot tenant with human approval enforced before every outbound message.
+
+Acceptance-Criteria:
+  - AC-1: Live provider credentials are environment-scoped and never required for normal tests.
+  - AC-2: Provider send path records provider message ID, latency, delivery status, and failure reason.
+  - AC-3: Pilot tenant defaults to human approval for all outbound messages.
+  - AC-4: Provider failure creates retry or human-review fallback without duplicate sends.
+  - AC-5: Provider rate-limit response is handled and visible in operator/reliability metrics.
+
+Files:
+  - `src/lead_sla_agent/tools/messaging.py`
+  - `src/lead_sla_agent/workers/retries.py`
+  - `docs/runbook.md`
+  - `tests/integration/test_live_messaging_contract.py`
+
+Evidence:
+  - Fake-provider contract tests.
+  - Sandbox/live credential checklist.
+  - Human-approval gate test.
+
+Market-Gate:
+  - First pilot can send real replies safely with operator approval.
+
+### T58: Provider Webhook End-to-End Drill
+
+Owner: codex
+Phase: 18
+Type: provider webhook security
+Depends-On: T57
+
+Objective: |
+  Prove inbound provider webhooks work end to end through public URL, signature verification, idempotent intake, transcript persistence, and operator review creation.
+
+Acceptance-Criteria:
+  - AC-1: Webhook route rejects invalid signatures before persistence.
+  - AC-2: Replayed provider event IDs are idempotent.
+  - AC-3: Public webhook setup is documented for staging and production.
+  - AC-4: Webhook drill creates a lead, transcript entry, and review task without storing raw payload PII.
+
+Files:
+  - `src/lead_sla_agent/api/webhooks.py`
+  - `docs/runbook.md`
+  - `tests/integration/test_provider_webhook_e2e.py`
+
+Evidence:
+  - Webhook e2e tests.
+  - Signature failure tests.
+  - Setup checklist.
+
+Market-Gate:
+  - Real inbound leads can enter the system without manual import.
+
+### T59: Calendar and CRM Live Reconciliation
+
+Owner: human + codex
+Phase: 18
+Type: provider booking crm
+Depends-On: T25, T26, T55
+
+Objective: |
+  Add reconciliation for calendar bookings and CRM writes so operators can detect missing, duplicated, or failed external records.
+
+Acceptance-Criteria:
+  - AC-1: Calendar booking records can be reconciled by provider booking ID and tenant.
+  - AC-2: CRM lead records can be reconciled by provider record ID and source event ID.
+  - AC-3: Reconciliation reports missing, duplicate, and stale records without exposing PII in logs.
+  - AC-4: Operator-visible retry/handoff path exists for unresolved discrepancies.
+
+Files:
+  - `src/lead_sla_agent/tools/calendar.py`
+  - `src/lead_sla_agent/tools/crm.py`
+  - `src/lead_sla_agent/operator/provider_reconciliation.py`
+  - `tests/integration/test_provider_reconciliation.py`
+
+Evidence:
+  - Reconciliation tests.
+  - Duplicate/missing provider record tests.
+
+Market-Gate:
+  - Buyer can trust that booked jobs and CRM records match product analytics.
+
+---
+
+## Phase 19 - Observability and Reliability Operations
+
+Goal: make production behavior visible, alertable, and explainable before broad customer traffic.
+
+### T60: Metrics Backend and Alert Routing
+
+Owner: human + codex
+Phase: 19
+Type: observability reliability
+Depends-On: T40, T53
+
+Objective: |
+  Connect the existing metric contract to the chosen metrics backend and define actionable alerts for SLA breaches, provider failures, queue depth, error rate, and unsafe automation blocks.
+
+Acceptance-Criteria:
+  - AC-1: Metrics export path is configured for staging and production.
+  - AC-2: Alert rules include threshold, owner, severity, customer impact, and first response expectation.
+  - AC-3: Alerts use PII-free labels only.
+  - AC-4: Alert test or dry run proves routing works.
+
+Files:
+  - `src/lead_sla_agent/observability/metrics.py`
+  - `docs/nfr.md`
+  - `docs/runbook.md`
+  - `tests/unit/test_alert_contract.py`
+
+Evidence:
+  - Alert contract tests.
+  - Dry-run alert record.
+  - PII label scan.
+
+Market-Gate:
+  - Customer-impacting failures page the operator before the buyer reports them.
+
+### T61: Structured Logs, Traces, and PII Redaction Gate
+
+Owner: codex
+Phase: 19
+Type: observability privacy
+Depends-On: T60
+
+Objective: |
+  Standardize structured logs and trace context across intake, agent decisions, provider calls, review actions, and background workers with an automated PII redaction gate.
+
+Acceptance-Criteria:
+  - AC-1: Logs include correlation ID, tenant ref/hash, component, action, result, and latency when applicable.
+  - AC-2: Logs and traces exclude raw email, phone, address, customer name, message body, and secrets.
+  - AC-3: Tests fail on known PII patterns in captured logs.
+  - AC-4: Runbook explains how to debug an incident using correlation IDs.
+
+Files:
+  - `src/lead_sla_agent/observability/logging.py`
+  - `docs/runbook.md`
+  - `tests/integration/test_log_redaction.py`
+
+Evidence:
+  - Captured-log PII tests.
+  - Correlation ID tests.
+
+Market-Gate:
+  - Support can debug failures without exposing customer data.
+
+### T62: SLO Dashboard and Incident Drill
+
+Owner: human + codex
+Phase: 19
+Type: reliability support
+Depends-On: T60, T61
+
+Objective: |
+  Define production SLOs, dashboard panels, incident drill procedure, and customer communication path for the first pilot tenants.
+
+Acceptance-Criteria:
+  - AC-1: SLOs cover first response latency, provider send success, webhook intake success, review queue age, and unsafe autonomous-send count.
+  - AC-2: Dashboard specification maps each SLO to metric names and alert rules.
+  - AC-3: Incident drill template records detection time, mitigation, customer impact, root cause, and prevention.
+  - AC-4: Support docs link incident severity to customer update templates.
+
+Files:
+  - `docs/nfr.md`
+  - `docs/support/runbook.md`
+  - `docs/support/incident_template.md`
+  - `tests/unit/test_slo_docs.py`
+
+Evidence:
+  - SLO docs tests.
+  - Incident drill record template.
+
+Market-Gate:
+  - Pilot buyers get measurable reliability commitments, not vague uptime claims.
+
+---
+
+## Phase 20 - Security, Privacy, and Compliance Readiness
+
+Goal: reduce launch risk around abuse, data handling, legal promises, and operational access.
+
+### T63: Threat Model and Abuse Protection
+
+Owner: human + codex
+Phase: 20
+Type: security abuse
+Depends-On: T58
+
+Objective: |
+  Produce and implement the first production threat model covering webhooks, operator auth, tenant isolation, provider calls, prompt injection, rate limits, replay attacks, and abuse scenarios.
+
+Acceptance-Criteria:
+  - AC-1: Threat model lists assets, actors, trust boundaries, top threats, controls, and residual risks.
+  - AC-2: Webhook and operator endpoints have documented rate-limit behavior.
+  - AC-3: Replay, signature failure, tenant-scope, and prompt-injection controls have tests or eval cases.
+  - AC-4: Stop-ship security findings are tracked in Fix Queue until resolved.
+
+Files:
+  - `docs/security/threat_model.md`
+  - `src/lead_sla_agent/api/`
+  - `tests/integration/test_security_controls.py`
+  - `docs/agent_eval.md`
+
+Evidence:
+  - Threat model.
+  - Security-control tests.
+  - Agent eval update for prompt injection.
+
+Market-Gate:
+  - Founder can answer buyer security questions with concrete controls and known residual risks.
+
+### T64: Privacy, Retention, and Customer Data Terms
+
+Owner: human + codex
+Phase: 20
+Type: privacy compliance legal
+Depends-On: T39, T52
+
+Objective: |
+  Align data export/delete/anonymize behavior with plain-language customer terms, privacy policy, retention limits, and DPA-ready operational commitments.
+
+Acceptance-Criteria:
+  - AC-1: Privacy docs explain what data is collected, why, retention period, export/delete behavior, and subprocessors.
+  - AC-2: Retention jobs or documented manual procedure enforce transcript/audit/export retention expectations.
+  - AC-3: Export/delete/anonymize tests verify customer data handling commitments.
+  - AC-4: Legal docs avoid promises the system cannot technically honor.
+
+Files:
+  - `docs/legal/privacy.md`
+  - `docs/legal/dpa_notes.md`
+  - `docs/runbook.md`
+  - `tests/unit/test_privacy_docs.py`
+  - `tests/integration/test_data_retention.py`
+
+Evidence:
+  - Privacy docs tests.
+  - Retention behavior tests or documented manual drill.
+
+Market-Gate:
+  - Paid pilot agreement can include data handling terms the product can actually meet.
+
+### T65: Access Review and Production Admin Controls
+
+Owner: codex
+Phase: 20
+Type: security ops rbac
+Depends-On: T37, T52
+
+Objective: |
+  Add production admin access review procedures and role-gated controls for support, tenant owners, operators, viewers, and emergency access.
+
+Acceptance-Criteria:
+  - AC-1: Access review report lists tenant users, roles, last activity, and privileged actions without PII.
+  - AC-2: Emergency access is time-limited, audited, and documented.
+  - AC-3: Role downgrade/removal immediately blocks privileged actions.
+  - AC-4: Quarterly access review checklist exists for customer-facing operations.
+
+Files:
+  - `src/lead_sla_agent/operator/auth.py`
+  - `src/lead_sla_agent/operator/access_review.py`
+  - `docs/runbook.md`
+  - `tests/integration/test_access_review.py`
+
+Evidence:
+  - RBAC removal tests.
+  - Emergency access audit tests.
+  - Access review export test.
+
+Market-Gate:
+  - Customers can be told who has access to their account and how access is reviewed.
+
+---
+
+## Phase 21 - Controlled Pilot Launch
+
+Goal: validate the product on real leads with human approval, tight measurement, and explicit go/no-go criteria.
+
+### T66: First Pilot Tenant Launch Checklist
+
+Owner: human + codex
+Phase: 21
+Type: pilot launch ops
+Depends-On: T55, T57, T58, T60, T64
+
+Objective: |
+  Create and execute a launch checklist for the first real pilot tenant covering environment setup, knowledge corpus, provider credentials, operator accounts, support contacts, metrics baseline, and fallback plan.
+
+Acceptance-Criteria:
+  - AC-1: Checklist includes pre-launch, launch-day, first-week, and rollback/fallback steps.
+  - AC-2: Human approval is required for every outbound message at launch.
+  - AC-3: Baseline metrics are captured before traffic is routed.
+  - AC-4: Buyer signs off on success criteria and stop criteria before launch.
+
+Files:
+  - `docs/pilot/launch_checklist.md`
+  - `docs/market/pilot_measurement_plan.md`
+  - `docs/runbook.md`
+  - `tests/unit/test_pilot_launch_docs.py`
+
+Evidence:
+  - Launch checklist tests.
+  - Signed-off success/stop criteria artifact.
+
+Market-Gate:
+  - First customer can launch with clear safety, support, and measurement expectations.
+
+### T67: Real-Data Eval and Operator Feedback Loop
+
+Owner: human + codex
+Phase: 21
+Type: eval agent:quality rag:quality tool:safety
+Depends-On: T33, T66
+
+Objective: |
+  Convert de-identified pilot transcripts and operator corrections into regression evals for retrieval, tool use, and agent policy decisions.
+
+Acceptance-Criteria:
+  - AC-1: Feedback export de-identifies customer PII before entering eval fixtures.
+  - AC-2: Retrieval eval includes real missed/accepted answers from the pilot.
+  - AC-3: Tool eval includes real provider failure and retry cases.
+  - AC-4: Agent eval includes real handoff, unsafe, insufficient-evidence, and approved-send cases.
+  - AC-5: Eval thresholds are updated only with documented rationale.
+
+Files:
+  - `tests/eval/fixtures/`
+  - `tests/eval/`
+  - `docs/retrieval_eval.md`
+  - `docs/tool_eval.md`
+  - `docs/agent_eval.md`
+  - `tests/eval/test_operator_feedback.py`
+
+Evidence:
+  - De-identified eval fixtures.
+  - Eval regression results.
+  - Threshold rationale.
+
+Market-Gate:
+  - Product quality improves from real operator behavior, not synthetic assumptions.
+
+### T68: Autonomous Send Readiness Gate
+
+Owner: human + codex
+Phase: 21
+Type: safety agent:policy
+Depends-On: T67
+
+Objective: |
+  Define and enforce the conditions under which a tenant may move selected low-risk replies from human approval to autonomous send.
+
+Acceptance-Criteria:
+  - AC-1: Autonomous send remains disabled by default for every tenant.
+  - AC-2: Tenant-specific enablement requires owner approval, minimum eval performance, low unsafe/handoff rate, and rollback plan.
+  - AC-3: Autonomous categories are narrowly scoped and auditable.
+  - AC-4: Any uncertainty, insufficient evidence, provider failure, or policy match routes back to human review.
+  - AC-5: Runbook includes immediate kill-switch procedure.
+
+Files:
+  - `src/lead_sla_agent/agent/policy.py`
+  - `src/lead_sla_agent/operator/tenant_admin.py`
+  - `docs/agent_eval.md`
+  - `docs/runbook.md`
+  - `tests/integration/test_autonomous_send_gate.py`
+
+Evidence:
+  - Agent policy tests.
+  - Eval threshold evidence.
+  - Kill-switch drill.
+
+Market-Gate:
+  - Autonomous sending can be discussed with buyers only after measured safety evidence exists.
+
+### T69: Production Readiness Go/No-Go Review
+
+Owner: human + codex
+Phase: 21
+Type: audit release
+Depends-On: T50, T51, T52, T56, T59, T62, T65, T68
+
+Objective: |
+  Run a final production-readiness review before broad paid production launch.
+
+Acceptance-Criteria:
+  - AC-1: Review covers data durability, deploy/rollback, live providers, observability, security, privacy/legal, pilot metrics, eval results, and support readiness.
+  - AC-2: Open P0/P1 findings block production launch.
+  - AC-3: P2 findings have owner, due date, and accepted residual-risk rationale.
+  - AC-4: Go/no-go decision is recorded with evidence links.
+
+Files:
+  - `docs/audit/PRODUCTION_READINESS_REVIEW.md`
+  - `docs/audit/AUDIT_INDEX.md`
+  - `docs/EVIDENCE_INDEX.md`
+  - `docs/CODEX_PROMPT.md`
+
+Evidence:
+  - Production readiness review.
+  - Full test/lint/eval/CI evidence.
+  - Pilot metric summary.
+
+Market-Gate:
+  - Product moves from controlled pilot to paid production only with explicit evidence and accepted residual risks.
+
+---
+
 ## Recommended Sequence
 
 The highest-leverage path is:
 
-1. Phase 7: durable runtime and tenant safety.
-2. Phase 8: one real messaging channel, one real calendar, one real CRM/spreadsheet.
-3. Phase 11: one vertical package and first buyer proof.
-4. Phase 9 and Phase 10 in parallel: production AI quality plus operator UX.
-5. Phase 12 before handling broader customer data.
-6. Phase 13 before scaling engineering scope.
-7. Phase 14 and Phase 15 only after pilot proof exists.
+1. Closed baseline: T19-T49 establish durable prototype, provider contracts, AI quality gates, operator workflows, sales readiness, tenant admin, usage metering, and release discipline.
+2. Phase 16: persist remaining tenant config, usage billing, and audit ledgers.
+3. Phase 17: choose real deployment target and prove staging/prod deploy, smoke, secrets, and rollback.
+4. Phase 18: run live provider paths with human approval and reconciliation.
+5. Phase 19: connect metrics/logging/alerts and run reliability drills.
+6. Phase 20: close security, privacy, legal, access review, and abuse-protection gaps.
+7. Phase 21: launch a controlled pilot, feed real data into evals, then run go/no-go readiness review.
 
-Avoid building generic SaaS scale before one vertical has a credible booked-lead or qualified-handoff lift.
+Avoid enabling autonomous send or broad paid production before real pilot evidence, rollback rehearsal, alert routing, provider reconciliation, and privacy/legal commitments are proven.
