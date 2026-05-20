@@ -1,0 +1,61 @@
+{
+  "schema_version": "demo-tenant-state-v1",
+  "tenant": {
+    "tenant_id": "demo-garage-door",
+    "name": "DFW Garage Door Demo",
+    "vertical_slug": "garage_door_repair",
+    "timezone": "America/Chicago"
+  },
+  "corpus_documents": [
+    "gd-service-area",
+    "gd-pricing-ranges",
+    "gd-booking-policy",
+    "gd-safety-policy",
+    "gd-commercial-escalation"
+  ],
+  "leads": [
+    {
+      "lead_id": "demo-supported-faq",
+      "scenario": "supported_faq",
+      "contact_ref": "demo-contact-supported",
+      "issue": "stuck closed residential garage door",
+      "expected_demo_step": "answer with approved service-area evidence"
+    },
+    {
+      "lead_id": "demo-unsupported-handoff",
+      "scenario": "unsupported_handoff",
+      "contact_ref": "demo-contact-unsupported",
+      "issue": "refund request for a prior visit",
+      "expected_demo_step": "create human-review handoff"
+    },
+    {
+      "lead_id": "demo-booking-proposal",
+      "scenario": "booking_proposal",
+      "contact_ref": "demo-contact-booking",
+      "issue": "same-day broken spring visit request",
+      "expected_demo_step": "propose slot but require explicit acceptance before booking"
+    }
+  ],
+  "review_tasks": [
+    {
+      "task_id": "demo-approval-review",
+      "scenario": "operator_approval",
+      "lead_id": "demo-booking-proposal",
+      "handoff_reason": "booking_without_acceptance",
+      "transcript_refs": ["demo-message-booking-1"],
+      "evidence_ids": ["gd-booking-policy"],
+      "proposed_reply": "I can hold the next available window if you confirm it works.",
+      "required_action": "approve_or_no_send",
+      "status": "open"
+    }
+  ],
+  "analytics": {
+    "lead_count": 3,
+    "first_response_latency_p50_ms": 1200,
+    "first_response_latency_p95_ms": 1800,
+    "automation_success_rate": 0.67,
+    "human_review_rate": 0.33,
+    "booked_labels": 1,
+    "provider_send_failures": 0
+  }
+}

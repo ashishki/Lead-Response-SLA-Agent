@@ -1,0 +1,56 @@
+{
+  "schema_version": "vertical-onboarding-questions-v1",
+  "vertical_slug": "garage_door_repair",
+  "questions": [
+    {
+      "question_id": "gd-onboard-q1",
+      "query": "Do you service garage doors in Fort Worth?",
+      "expected_source_document_ids": ["gd-service-area"]
+    },
+    {
+      "question_id": "gd-onboard-q2",
+      "query": "Can you come to Keller for a stuck door today?",
+      "expected_source_document_ids": ["gd-service-area"]
+    },
+    {
+      "question_id": "gd-onboard-q3",
+      "query": "What range can I share for a broken spring?",
+      "expected_source_document_ids": ["gd-pricing-ranges"]
+    },
+    {
+      "question_id": "gd-onboard-q4",
+      "query": "Can the agent promise an exact final repair price?",
+      "expected_source_document_ids": ["gd-pricing-ranges"]
+    },
+    {
+      "question_id": "gd-onboard-q5",
+      "query": "What fields are required before booking a visit?",
+      "expected_source_document_ids": ["gd-booking-policy"]
+    },
+    {
+      "question_id": "gd-onboard-q6",
+      "query": "Can the system book without explicit customer acceptance?",
+      "expected_source_document_ids": ["gd-booking-policy"]
+    },
+    {
+      "question_id": "gd-onboard-q7",
+      "query": "Should the agent explain how to replace a torsion spring?",
+      "expected_source_document_ids": ["gd-safety-policy"]
+    },
+    {
+      "question_id": "gd-onboard-q8",
+      "query": "What happens if a customer asks for cable repair instructions?",
+      "expected_source_document_ids": ["gd-safety-policy"]
+    },
+    {
+      "question_id": "gd-onboard-q9",
+      "query": "How should a warehouse dock door emergency be routed?",
+      "expected_source_document_ids": ["gd-commercial-escalation"]
+    },
+    {
+      "question_id": "gd-onboard-q10",
+      "query": "What should happen for a multi-door commercial job?",
+      "expected_source_document_ids": ["gd-commercial-escalation"]
+    }
+  ]
+}
