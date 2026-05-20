@@ -7,6 +7,38 @@
 3. Run `docker compose config` before deployment.
 4. Run `python -m pytest tests/ -q --tb=short` before promoting a build.
 
+## Deployment Target
+
+The first staging and production target is a VPS with Docker Compose, accepted in `docs/adr/ADR-004-deployment-target.md`. Runtime remains T1: bounded API and worker containers, PostgreSQL, Redis, environment-managed secrets, and no privileged autonomous runtime mutation.
+
+Required resources:
+
+| Environment | Resource | Owner | Backup | Retention | Cost Expectation |
+|-------------|----------|-------|--------|-----------|------------------|
+| staging | VPS with Docker Compose API, worker, PostgreSQL, Redis | founder/operator | nightly PostgreSQL dump before migration tests | 7 days | low fixed monthly VPS cost |
+| production | VPS with Docker Compose API, worker, PostgreSQL, Redis | founder/operator | daily PostgreSQL dump and pre-migration dump | 30 days minimum during pilot | low fixed monthly VPS cost plus backup storage |
+| staging | environment secret file on host | founder/operator | recreate from secret store; do not back up plaintext | rotate on exposure or staff change | included in VPS ops |
+| production | environment secret file on host | founder/operator | recreate from secret store; do not back up plaintext | rotate on exposure or staff change | included in VPS ops |
+| both | Docker container logs | founder/operator | export only for incidents after PII review | 14 days local retention | included in VPS disk budget |
+
+Concrete staging deploy command:
+
+```bash
+ssh "$STAGING_VPS_USER@$STAGING_VPS_HOST" "cd /srv/lead-sla-agent && git fetch --prune && git checkout $GITHUB_SHA && docker compose config && docker compose up -d postgres redis && docker compose run --rm api alembic upgrade head && docker compose up -d --build api worker && docker compose ps"
+```
+
+Concrete production deploy command:
+
+```bash
+ssh "$PRODUCTION_VPS_USER@$PRODUCTION_VPS_HOST" "cd /srv/lead-sla-agent && BACKUP_PATH=backups/pre-migration-$GITHUB_SHA.dump ./scripts/backup_postgres.sh && git fetch --prune && git checkout $GITHUB_SHA && docker compose config && docker compose up -d postgres redis && docker compose run --rm api alembic upgrade head && docker compose up -d --build api worker && docker compose ps"
+```
+
+Concrete app rollback command:
+
+```bash
+ssh "$PRODUCTION_VPS_USER@$PRODUCTION_VPS_HOST" "cd /srv/lead-sla-agent && git checkout $ROLLBACK_GIT_SHA && docker compose up -d --build api worker && docker compose ps"
+```
+
 ## Webhook Configuration
 
 Configure the inbound provider webhook URL as `/webhooks/inbound`. Set `WEBHOOK_SHARED_SECRET` in secret storage and configure the provider to sign request bodies with the matching HMAC SHA-256 signature.
@@ -46,6 +78,20 @@ Operators use the JSON operator API to list human-review tasks, inspect transcri
 
 Rollback application containers to the previous image. Database migrations must be forward-only or have an explicit rollback note before deployment. Preserve PostgreSQL data and Redis can be treated as ephemeral queue/cache state.
 
+Rollback decision path:
+
+| Decision | Use when | Required proof |
+| --- | --- | --- |
+| App-only rollback | The release failed in application code, provider wiring, or configuration, and the database schema remains compatible with the previous image. | Previous image or `rollback_git_sha`, unchanged `alembic current`, and smoke tests after rollback. |
+| Migration rollback | The failure is caused by the latest migration and that migration has downgrade coverage. | Recorded migration version before rollback, migration version after rollback, successful `alembic downgrade -1`, re-upgrade rehearsal, and smoke tests. |
+| Restore from backup | Data is corrupted, a migration is irreversible, downgrade validation fails, or the database state is not trusted. | Pre-migration backup path, restore into non-production first, restore verification command, and post-restore smoke tests. |
+
+Staging rollback rehearsal must record `migration_version_before`, `migration_version_after`, `rollback_decision`, `backup_path`, and `smoke_result` in `docs/rollback_rehearsal.md`. Validate the artifact and migration rollback coverage before production promotion:
+
+```bash
+python scripts/rollback_check.py --rehearsal-artifact docs/rollback_rehearsal.md
+```
+
 ## Release Discipline
 
 CI separates checks into unit tests, integration tests, eval gates, and deployment checks. A release cannot be promoted unless all four categories pass.
@@ -54,7 +100,7 @@ Staging promotion:
 
 1. Deploy the candidate image to staging.
 2. Run `alembic upgrade head` against the staging database.
-3. Run staging smoke tests: health and operator auth/RBAC.
+3. Run staging smoke tests: `python scripts/smoke_test.py --environment staging --base-url https://staging.example.test --tenant-id smoke-staging --sandbox-mode`.
 4. Fill out `docs/release_template.md`, including model, prompt, schema, and eval changes.
 5. Verify rollback assets: previous image, PostgreSQL backup, restore command, and smoke tests.
 
@@ -63,8 +109,10 @@ Production promotion:
 1. Promote only after staging migration and smoke tests pass.
 2. Take a production PostgreSQL backup immediately before migration.
 3. Run production migrations.
-4. Run production smoke tests.
+4. Run production smoke tests: `python scripts/smoke_test.py --environment production --base-url https://app.example.test --tenant-id smoke-production --sandbox-mode`.
 5. Keep the previous application image available until post-release checks pass.
+
+Smoke tests validate API health, Alembic migration version, Redis connectivity, operator auth, provider sandbox path, and unsafe-message handoff. The provider sandbox check is skipped unless `--sandbox-mode` is present; smoke tests must never send to real customer recipients.
 
 Rollback validation:
 
@@ -72,6 +120,7 @@ Rollback validation:
 2. Run `scripts/restore_postgres.sh` with `VERIFY_COMMAND` set to health and persistence smoke tests.
 3. Confirm release notes identify the previous image and backup path.
 4. Do not promote to production if rollback validation has not been completed for the release.
+5. Confirm `docs/rollback_rehearsal.md` records the migration version before rollback and migration version after rollback.
 
 ## Backup And Restore
 
@@ -192,6 +241,14 @@ Response:
 4. Re-run a signed webhook smoke test.
 5. Record provider, environment, failure count, and rotation status.
 
+## Audit Event Retention and Export
+
+Canonical audit events are stored in PostgreSQL `audit_log_event` rows under tenant RLS. Search/export access is limited to owner or operator roles and must always apply tenant context before reading audit rows.
+
+Audit payloads must contain operational references only: actor refs or hashes, action, resource type, resource ID/ref, result, policy version, timestamp, and PII-free metadata. Raw lead names, phone numbers, email addresses, transcripts, provider user IDs, bearer tokens, API keys, and webhook payloads are rejected before storage.
+
+Retention defaults to the tenant retention policy, with a minimum pilot retention target of 90 days unless a signed customer agreement requires a longer period. Exports should be generated from tenant-scoped searches and reviewed for PII before sharing outside the operating team.
+
 ## Secrets
 
 Real provider tokens, API keys, passwords, and webhook secrets must come from environment variables or deployment secret storage. Do not commit real credentials, `.env` files, provider tokens, or customer secrets to the repository.
@@ -210,17 +267,39 @@ Do not share provider credentials between local, staging, and production. A stag
 
 ### Secret Inventory
 
-| Secret | Runtime recipient | Source |
-|--------|-------------------|--------|
-| `DATABASE_URL` | api, worker | Environment-specific PostgreSQL secret; never committed. |
-| `REDIS_URL` | api, worker | Environment-specific Redis URL; no customer PII should be stored in Redis values. |
-| `OPERATOR_AUTH_SECRET` | api only | Environment-specific operator-token signing secret. |
-| `WEBHOOK_SHARED_SECRET` | api only | Provider webhook signing secret for inbound email, WhatsApp, Telegram, or website-form events. |
-| `EMAIL_API_KEY`, `EMAIL_SENDER`, `EMAIL_API_URL` | worker only | Email provider account for outbound fallback sends. |
-| `CALENDAR_API_TOKEN`, `CALENDAR_API_URL` | worker only | Calendar provider account used for slot lookup and booking. |
-| `CRM_API_TOKEN`, `CRM_API_URL` | worker only | CRM or spreadsheet destination account for lead writes. |
-| `EMBEDDING_API_KEY`, `EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS`, `EMBEDDING_API_URL` | worker only | Embedding provider account for indexing and retrieval. |
-| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | postgres container only | Database bootstrap secrets used by Compose-managed PostgreSQL. |
+Local required secrets:
+
+| Runtime | Secret names |
+|---------|--------------|
+| api | `APP_ENV`, `DATABASE_URL`, `REDIS_URL`, `OPERATOR_AUTH_SECRET`, `WEBHOOK_SHARED_SECRET` |
+| worker | `APP_ENV`, `DATABASE_URL`, `REDIS_URL`, `EMAIL_API_KEY`, `EMAIL_SENDER`, `EMAIL_API_URL`, `CALENDAR_API_TOKEN`, `CALENDAR_API_URL`, `CRM_API_TOKEN`, `CRM_API_URL`, `EMBEDDING_API_KEY`, `EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS`, `EMBEDDING_API_URL`, `MAX_AUTONOMOUS_TURNS`, `MAX_TOOL_CALLS_PER_TURN`, `MAX_INDEX_AGE_HOURS` |
+
+Staging required secrets:
+
+| Runtime | Secret names |
+|---------|--------------|
+| api | `APP_ENV`, `DATABASE_URL`, `REDIS_URL`, `OPERATOR_AUTH_SECRET`, `WEBHOOK_SHARED_SECRET` |
+| worker | `APP_ENV`, `DATABASE_URL`, `REDIS_URL`, `EMAIL_API_KEY`, `EMAIL_SENDER`, `EMAIL_API_URL`, `CALENDAR_API_TOKEN`, `CALENDAR_API_URL`, `CRM_API_TOKEN`, `CRM_API_URL`, `EMBEDDING_API_KEY`, `EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS`, `EMBEDDING_API_URL`, `MAX_AUTONOMOUS_TURNS`, `MAX_TOOL_CALLS_PER_TURN`, `MAX_INDEX_AGE_HOURS` |
+| deploy workflow | `STAGING_VPS_HOST`, `STAGING_VPS_USER`, `STAGING_VPS_SSH_KEY` |
+
+Production required secrets:
+
+| Runtime | Secret names |
+|---------|--------------|
+| api | `APP_ENV`, `DATABASE_URL`, `REDIS_URL`, `OPERATOR_AUTH_SECRET`, `WEBHOOK_SHARED_SECRET` |
+| worker | `APP_ENV`, `DATABASE_URL`, `REDIS_URL`, `EMAIL_API_KEY`, `EMAIL_SENDER`, `EMAIL_API_URL`, `CALENDAR_API_TOKEN`, `CALENDAR_API_URL`, `CRM_API_TOKEN`, `CRM_API_URL`, `EMBEDDING_API_KEY`, `EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS`, `EMBEDDING_API_URL`, `MAX_AUTONOMOUS_TURNS`, `MAX_TOOL_CALLS_PER_TURN`, `MAX_INDEX_AGE_HOURS` |
+| deploy workflow | `PRODUCTION_VPS_HOST`, `PRODUCTION_VPS_USER`, `PRODUCTION_VPS_SSH_KEY` |
+
+Provider adapter scopes:
+
+| Adapter | Worker-only secret names |
+|---------|--------------------------|
+| email | `EMAIL_API_KEY`, `EMAIL_SENDER`, `EMAIL_API_URL` |
+| calendar | `CALENDAR_API_TOKEN`, `CALENDAR_API_URL` |
+| crm | `CRM_API_TOKEN`, `CRM_API_URL` |
+| embedding | `EMBEDDING_API_KEY`, `EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS`, `EMBEDDING_API_URL` |
+
+Database bootstrap secrets `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` belong only to the PostgreSQL container or host provisioning process.
 
 ### Runtime Scope
 
@@ -235,4 +314,5 @@ The worker container receives only database/queue variables plus provider adapte
 3. Restart only the services that receive the rotated secret: API for webhook/operator auth, worker for provider adapters, PostgreSQL for bootstrap credentials only during controlled database maintenance.
 4. Run `/health`, provider fake/contract smoke tests, and the operator auth smoke path.
 5. Revoke the old provider token after the new deployment passes.
-6. Record the rotation date, owner, affected environment, and smoke-test result in the deployment log.
+6. Verify revocation by making a negative smoke call with the old credential and confirming it fails without logging the credential value.
+7. Record the rotation date, owner, affected environment, revocation check, and smoke-test result in the deployment log.

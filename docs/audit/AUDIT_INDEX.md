@@ -28,6 +28,8 @@ One row per validation or review cycle.
 | PHASE13-REVIEW | Phase 13 | 2026-05-20 | T41-T43 implementation verification | No | 0 | 0 | 0 |
 | PHASE14-REVIEW | Phase 14 | 2026-05-20 | T44-T46 implementation verification | No | 0 | 0 | 0 |
 | PHASE15-REVIEW | Phase 15 | 2026-05-20 | T47-T49 implementation verification | No | 0 | 0 | 0 |
+| PHASE16-REVIEW | Phase 16 | 2026-05-20 | T50-T52 implementation verification | No | 0 | 0 | 0 |
+| PHASE17-REVIEW | Phase 17 | 2026-05-20 | T53-T56 implementation verification | No | 0 | 0 | 0 |
 
 ---
 
@@ -51,6 +53,8 @@ One row per validation or review cycle.
 | PHASE13-REVIEW | `docs/audit/PHASE13_REVIEW.md` | Phase 13 | Green |
 | PHASE14-REVIEW | `docs/audit/PHASE14_REVIEW.md` | Phase 14 | Green |
 | PHASE15-REVIEW | `docs/audit/PHASE15_REVIEW.md` | Phase 15 | Green |
+| PHASE16-REVIEW | `docs/audit/PHASE16_REVIEW.md` | Phase 16 | Green |
+| PHASE17-REVIEW | `docs/audit/PHASE17_REVIEW.md` | Phase 17 | Green |
 
 ---
 

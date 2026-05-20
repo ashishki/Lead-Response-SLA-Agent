@@ -10,57 +10,124 @@ on:
         options:
           - staging
           - production
+      rollback_git_sha:
+        description: "Git SHA to use for app-only rollback rehearsal"
+        required: false
+        default: "HEAD~1"
 
 jobs:
   staging_deploy:
-    name: Staging Migration + Smoke
+    name: Staging VPS Migration + Smoke
     runs-on: ubuntu-latest
     environment: staging
+    env:
+      VPS_APP_DIR: /srv/lead-sla-agent
+      STAGING_SSH_TARGET: ${{ secrets.STAGING_VPS_USER }}@${{ secrets.STAGING_VPS_HOST }}
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: "pip"
-      - name: Install dependencies
-        run: pip install -r requirements-dev.txt -e .
+      - name: Validate staging deploy secret names
+        env:
+          STAGING_VPS_HOST: ${{ secrets.STAGING_VPS_HOST }}
+          STAGING_VPS_USER: ${{ secrets.STAGING_VPS_USER }}
+          STAGING_VPS_SSH_KEY: ${{ secrets.STAGING_VPS_SSH_KEY }}
+        run: |
+          test -n "$STAGING_VPS_HOST"
+          test -n "$STAGING_VPS_USER"
+          test -n "$STAGING_VPS_SSH_KEY"
+      - name: Install staging SSH key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.STAGING_VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.STAGING_VPS_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+      - name: Validate staging runtime secret names
+        run: |
+          ssh "$STAGING_SSH_TARGET" \
+            "cd $VPS_APP_DIR && test -f .env && grep -q '^APP_ENV=' .env && grep -q '^DATABASE_URL=' .env && grep -q '^REDIS_URL=' .env && grep -q '^OPERATOR_AUTH_SECRET=' .env && grep -q '^WEBHOOK_SHARED_SECRET=' .env && grep -q '^EMAIL_API_KEY=' .env && grep -q '^CALENDAR_API_TOKEN=' .env && grep -q '^CRM_API_TOKEN=' .env && grep -q '^EMBEDDING_API_KEY=' .env"
+      - name: Deploy staging containers
+        run: |
+          ssh "$STAGING_SSH_TARGET" \
+            "cd $VPS_APP_DIR && git fetch --prune && git checkout $GITHUB_SHA && docker compose config && docker compose up -d postgres redis && docker compose up -d --build api worker"
       - name: Run staging migrations
-        env:
-          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
-        run: alembic upgrade head
+        run: |
+          ssh "$STAGING_SSH_TARGET" \
+            "cd $VPS_APP_DIR && docker compose run --rm api alembic upgrade head"
       - name: Run staging smoke tests
-        env:
-          APP_ENV: staging
-          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
-          REDIS_URL: ${{ secrets.STAGING_REDIS_URL }}
-          OPERATOR_AUTH_SECRET: ${{ secrets.STAGING_OPERATOR_AUTH_SECRET }}
-          WEBHOOK_SHARED_SECRET: ${{ secrets.STAGING_WEBHOOK_SHARED_SECRET }}
-        run: python -m pytest tests/integration/test_health.py tests/integration/test_operator_auth_rbac.py -q --tb=short
+        run: |
+          ssh "$STAGING_SSH_TARGET" \
+            "cd $VPS_APP_DIR && docker compose exec -T api python scripts/smoke_test.py --environment staging --base-url http://localhost:8000 --tenant-id smoke-staging --sandbox-mode"
       - name: Validate rollback command
-        run: test -x scripts/restore_postgres.sh && test -f docs/release_template.md
+        run: |
+          python scripts/rollback_check.py --rehearsal-artifact docs/rollback_rehearsal.md
+          test -x scripts/restore_postgres.sh
+          test -f docs/release_template.md
+          test -f docs/rollback_rehearsal.md
+          ssh "$STAGING_SSH_TARGET" \
+            "cd $VPS_APP_DIR && test -x scripts/restore_postgres.sh && git rev-parse --verify '${{ github.event.inputs.rollback_git_sha }}' && docker compose ps"
 
   production_deploy:
-    name: Production Promotion
+    name: Production VPS Promotion
     runs-on: ubuntu-latest
     needs: staging_deploy
     if: ${{ github.event.inputs.target_environment == 'production' }}
     environment: production
+    env:
+      VPS_APP_DIR: /srv/lead-sla-agent
+      PRODUCTION_SSH_TARGET: ${{ secrets.PRODUCTION_VPS_USER }}@${{ secrets.PRODUCTION_VPS_HOST }}
     steps:
       - uses: actions/checkout@v4
+      - name: Validate production deploy secret names
+        env:
+          PRODUCTION_VPS_HOST: ${{ secrets.PRODUCTION_VPS_HOST }}
+          PRODUCTION_VPS_USER: ${{ secrets.PRODUCTION_VPS_USER }}
+          PRODUCTION_VPS_SSH_KEY: ${{ secrets.PRODUCTION_VPS_SSH_KEY }}
+        run: |
+          test -n "$PRODUCTION_VPS_HOST"
+          test -n "$PRODUCTION_VPS_USER"
+          test -n "$PRODUCTION_VPS_SSH_KEY"
+      - name: Install production SSH key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.PRODUCTION_VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.PRODUCTION_VPS_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+      - name: Validate production runtime secret names
+        run: |
+          ssh "$PRODUCTION_SSH_TARGET" \
+            "cd $VPS_APP_DIR && test -f .env && grep -q '^APP_ENV=' .env && grep -q '^DATABASE_URL=' .env && grep -q '^REDIS_URL=' .env && grep -q '^OPERATOR_AUTH_SECRET=' .env && grep -q '^WEBHOOK_SHARED_SECRET=' .env && grep -q '^EMAIL_API_KEY=' .env && grep -q '^CALENDAR_API_TOKEN=' .env && grep -q '^CRM_API_TOKEN=' .env && grep -q '^EMBEDDING_API_KEY=' .env"
       - name: Confirm release template
         run: test -f docs/release_template.md
+      - name: Validate rollback rehearsal artifacts
+        run: |
+          python scripts/rollback_check.py --rehearsal-artifact docs/rollback_rehearsal.md
+          test -f docs/rollback_rehearsal.md
+      - name: Take production backup
+        run: |
+          ssh "$PRODUCTION_SSH_TARGET" \
+            "cd $VPS_APP_DIR && mkdir -p backups && BACKUP_PATH=backups/pre-migration-$GITHUB_SHA.dump ./scripts/backup_postgres.sh"
+      - name: Deploy production containers
+        run: |
+          ssh "$PRODUCTION_SSH_TARGET" \
+            "cd $VPS_APP_DIR && git fetch --prune && git checkout $GITHUB_SHA && docker compose config && docker compose up -d postgres redis && docker compose up -d --build api worker"
       - name: Run production migrations
-        env:
-          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
-        run: alembic upgrade head
+        run: |
+          ssh "$PRODUCTION_SSH_TARGET" \
+            "cd $VPS_APP_DIR && docker compose run --rm api alembic upgrade head"
       - name: Run production smoke tests
-        env:
-          APP_ENV: production
-          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
-          REDIS_URL: ${{ secrets.PRODUCTION_REDIS_URL }}
-          OPERATOR_AUTH_SECRET: ${{ secrets.PRODUCTION_OPERATOR_AUTH_SECRET }}
-          WEBHOOK_SHARED_SECRET: ${{ secrets.PRODUCTION_WEBHOOK_SHARED_SECRET }}
-        run: python -m pytest tests/integration/test_health.py -q --tb=short
+        run: |
+          ssh "$PRODUCTION_SSH_TARGET" \
+            "cd $VPS_APP_DIR && docker compose exec -T api python scripts/smoke_test.py --environment production --base-url http://localhost:8000 --tenant-id smoke-production --sandbox-mode"
       - name: Validate rollback assets
-        run: test -x scripts/restore_postgres.sh && test -f docs/runbook.md
+        run: |
+          python scripts/rollback_check.py --rehearsal-artifact docs/rollback_rehearsal.md
+          test -x scripts/restore_postgres.sh
+          test -f docs/runbook.md
+          test -f docs/rollback_rehearsal.md
+          ssh "$PRODUCTION_SSH_TARGET" \
+            "cd $VPS_APP_DIR && test -x scripts/restore_postgres.sh && git rev-parse --verify '${{ github.event.inputs.rollback_git_sha }}' && docker compose ps"

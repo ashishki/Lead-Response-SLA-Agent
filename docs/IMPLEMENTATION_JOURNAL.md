@@ -25,6 +25,94 @@ This file records durable handoff context across agents and sessions. It is not 
 
 ## Entries
 
+### 2026-05-20 - Phase 17 Review - Deployment Hardening
+
+- Scope: T53-T56, `docs/audit/PHASE17_REVIEW.md`, `docs/audit/AUDIT_INDEX.md`, `docs/CODEX_PROMPT.md`.
+- Why this work happened: Phase 17 tasks completed and the orchestrator requires a phase-boundary verification artifact before continuing.
+- Decisions applied: stop before T57 because choosing the first live messaging provider and live credential path is a human+Codex provider/security-boundary decision.
+- Evidence collected: `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 215 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed.
+- Follow-ups: T57 is blocked pending human selection/approval of the first live messaging provider for the pilot.
+- Notes for next agent: this was a same-session verification pass, not an independent review.
+
+### 2026-05-20 - T56 - Rollback Rehearsal and Migration Safety
+
+- Scope: `scripts/rollback_check.py`, `docs/rollback_rehearsal.md`, `docs/runbook.md`, `.github/workflows/deploy.yml`, `.github/workflows/ci.yml`, `tests/unit/test_rollback_rehearsal.py`.
+- Why this work happened: T56 required turning rollback documentation into a rehearsed, testable command path before production promotion.
+- Decisions applied: added AST-based migration downgrade coverage checks, explicit irreversible-rationale support, a staging rehearsal artifact with before/after migration version fields, and production workflow validation before deployment starts.
+- Evidence collected: `.venv/bin/python -m pytest tests/unit/test_rollback_rehearsal.py tests/unit/test_runbook_backup_restore.py tests/unit/test_ci_workflow.py tests/unit/test_deployment_target_docs.py -q --tb=short` -> 21 passed; `.venv/bin/python scripts/rollback_check.py --rehearsal-artifact docs/rollback_rehearsal.md --json` -> `ok: true`; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 215 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; all current migrations have downgrade coverage, rehearsal artifact records before/after migration versions, runbook defines app-only versus migration versus backup restore decisions, and production workflow validates rollback artifacts before deploying.
+- Follow-ups: complete Phase 17 review, then stop before T57 until the human chooses/approves the first live messaging provider.
+- Notes for next agent: `docs/rollback_rehearsal.md` is a template artifact; the real release operator should fill the TBD fields per staging release rehearsal.
+
+### 2026-05-20 - T55 - Deployment Smoke Tests
+
+- Scope: `scripts/smoke_test.py`, `.github/workflows/deploy.yml`, `docs/runbook.md`, `tests/integration/test_smoke_tests.py`, `tests/unit/test_deployment_target_docs.py`.
+- Why this work happened: T55 required a real post-deploy smoke command for VPS staging and production promotion.
+- Decisions applied: added a CLI that targets staging or production by URL/environment, checks API health, Alembic migration version, Redis, operator auth, provider sandbox, and unsafe-message handoff; sandbox provider sends use only `FakeMessagingAdapter` and `sandbox@example.test`, with provider smoke skipped unless `--sandbox-mode` is explicit.
+- Evidence collected: `.venv/bin/python -m pytest tests/integration/test_smoke_tests.py tests/unit/test_deployment_target_docs.py tests/unit/test_ci_workflow.py -q --tb=short` -> 20 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 208 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; production deployment depends on staging smoke success, smoke checks fail closed when `DATABASE_URL` or `REDIS_URL` is missing, and no real customer send path is used.
+- Follow-ups: continue to T56 Rollback Rehearsal and Migration Safety.
+- Notes for next agent: deploy workflow runs smoke from inside the API container with `http://localhost:8000`; real VPS setup must ensure the API container can reach itself at that address.
+
+### 2026-05-20 - T54 - Staging and Production Secret Partitioning
+
+- Scope: `src/lead_sla_agent/config.py`, `docs/runbook.md`, `.github/workflows/deploy.yml`, `.github/workflows/ci.yml`, `tests/unit/test_environment_secret_contract.py`.
+- Why this work happened: T54 required explicit environment-specific secret expectations for VPS staging and production without committing credentials.
+- Decisions applied: added a config-level secret contract for local/staging/production API, worker, and deploy runtimes; provider credentials are scoped by adapter; deploy workflow validates secret names and remote `.env` key presence without printing values.
+- Evidence collected: `.venv/bin/python -m pytest tests/unit/test_environment_secret_contract.py tests/unit/test_secret_policy.py tests/unit/test_deployment_docs.py tests/unit/test_deployment_target_docs.py tests/unit/test_ci_workflow.py -q --tb=short` -> 24 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 199 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; required secrets are documented separately for local/staging/production, missing-secret errors list names only, provider credentials are scoped per adapter, and rotation includes revocation verification.
+- Follow-ups: continue to T55 Deployment Smoke Tests.
+- Notes for next agent: deploy workflow checks remote `.env` key names with `grep -q` and does not echo secret values.
+
+### 2026-05-20 - T53 - Deployment Target ADR and Infrastructure Contract
+
+- Scope: `docs/adr/ADR-004-deployment-target.md`, `docs/runbook.md`, `.github/workflows/deploy.yml`, `.github/workflows/ci.yml`, `alembic.ini`, `alembic/env.py`, `tests/unit/test_deployment_target_docs.py`.
+- Why this work happened: T53 required a human-approved first production hosting target and concrete deployment/rollback commands.
+- Decisions applied: user selected VPS as simpler and more understandable; ADR-004 accepts VPS with Docker Compose, preserves T1 runtime, rejects Render/Railway/AWS ECS for the first pilot, and assigns founder/operator ownership for host operations.
+- Evidence collected: `.venv/bin/python -m pytest tests/unit/test_deployment_target_docs.py tests/unit/test_deployment_docs.py tests/unit/test_ci_workflow.py -q --tb=short` -> 15 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test .venv/bin/alembic upgrade head` -> passed after disposable test schema reset; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 194 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; ADR names VPS/Docker Compose and rejected alternatives, runtime remains T1, staging/prod resources include owner/backup/retention/cost expectations, deploy workflow uses SSH to VPS with Docker Compose migration/smoke commands, and rollback command validation is documented/tested.
+- Follow-ups: continue to T54 Staging and Production Secret Partitioning.
+- Notes for next agent: `alembic.ini` and async `alembic/env.py` were added as adjacent support because the prior workflow command was not runnable without a script location and DATABASE_URL-aware async engine.
+
+### 2026-05-20 - Phase 16 Review - Production Data Durability
+
+- Scope: T50-T52, `docs/audit/PHASE16_REVIEW.md`, `docs/audit/AUDIT_INDEX.md`, `docs/CODEX_PROMPT.md`.
+- Why this work happened: Phase 16 tasks completed and the orchestrator requires a phase-boundary verification artifact before continuing.
+- Decisions applied: stop before T53 because deployment target selection is a human+Codex architecture decision.
+- Evidence collected: `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 188 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed.
+- Follow-ups: T53 is blocked pending human selection/approval of the first production deployment target.
+- Notes for next agent: this was a same-session verification pass, not an independent review.
+
+### 2026-05-20 - T52 - Immutable Audit Event Store
+
+- Scope: `src/lead_sla_agent/audit/events.py`, `src/lead_sla_agent/db/audit_repository.py`, `src/lead_sla_agent/db/models.py`, `alembic/versions/0007_audit_events.py`, `docs/runbook.md`, `tests/integration/test_audit_event_store.py`, and adjacent flow hooks in tenant admin, usage, review, and data admin paths.
+- Why this work happened: T52 required a centralized tenant-scoped audit event store for operational actions before production use.
+- Decisions applied: added canonical `audit_log_event` rows with actor ref, action, resource type/id, result, policy version, timestamp, and PII-free payload; owner/operator roles can search audit events, viewer cannot.
+- Evidence collected: `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test .venv/bin/python -m pytest tests/integration/test_audit_event_store.py tests/integration/test_tenant_admin_persistence.py tests/integration/test_usage_metering_persistence.py tests/integration/test_persistent_repositories.py tests/unit/test_db_models.py -q --tb=short` -> 22 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 188 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; audit events are append-only through the repository API, reject PII/secrets, search is tenant-scoped and role-gated, RLS denies cross-tenant direct reads, and tenant admin, billing usage, review approval, and data admin flows emit canonical audit fields.
+- Follow-ups: complete Phase 16 review, then stop before T53 until the human chooses the deployment target.
+- Notes for next agent: provider-send audit is covered by the canonical repository event shape; live provider wiring can attach to it when provider execution moves to persistent flows.
+
+### 2026-05-20 - T51 - Persistent Usage and Billing Event Ledger
+
+- Scope: `src/lead_sla_agent/billing/usage.py`, `src/lead_sla_agent/db/usage_repository.py`, `src/lead_sla_agent/db/models.py`, `alembic/versions/0006_usage_ledger.py`, `tests/integration/test_usage_metering.py`, `tests/integration/test_usage_metering_persistence.py`, `tests/unit/test_db_models.py`.
+- Why this work happened: T51 required replacing usage metering's in-memory-only contract with an append-only PostgreSQL ledger for billing exports and reconciliation.
+- Decisions applied: added `usage_ledger_event` with tenant/event-id uniqueness, RLS, persistent event-id idempotency, deterministic monthly export regeneration, PII value rejection for metadata, and `pricing-package-mapping-v1` in exports and persisted rows.
+- Evidence collected: `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test .venv/bin/python -m pytest tests/integration/test_usage_metering.py tests/integration/test_usage_metering_persistence.py tests/unit/test_db_models.py -q --tb=short` -> 12 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 182 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; ledger rows are tenant-scoped, duplicate event IDs do not inflate totals, monthly exports regenerate deterministically after restart, unsupported/PII metadata is rejected, and pricing package mapping is versioned.
+- Follow-ups: continue to T52 Immutable Audit Event Store.
+- Notes for next agent: Alembic CLI upgrade was not run because the repo has no Alembic config with `script_location`; migration behavior is covered by import-based tests and direct PostgreSQL metadata/RLS tests.
+
+### 2026-05-20 - T50 - Persistent Tenant Configuration Store
+
+- Scope: `src/lead_sla_agent/operator/tenant_admin.py`, `src/lead_sla_agent/db/tenant_config_repository.py`, `src/lead_sla_agent/db/models.py`, `alembic/versions/0005_tenant_config.py`, `tests/integration/test_tenant_admin_persistence.py`, `tests/unit/test_db_models.py`.
+- Why this work happened: T50 required replacing tenant admin's in-memory-only configuration contract with durable PostgreSQL-backed versioned storage.
+- Decisions applied: added `tenant_config` current-state rows plus append-only `tenant_config_audit` rows; retained the existing safe/dangerous field policy gate and added optimistic `expected_version` conflict detection.
+- Evidence collected: `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test .venv/bin/python -m pytest tests/integration/test_tenant_admin.py tests/integration/test_tenant_admin_persistence.py tests/unit/test_db_models.py -q --tb=short` -> 11 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 176 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; config survives new sessions, mutations create new versions and audit rows, dangerous changes require owner/approval, stale versions conflict, and repository/RLS tenant isolation is covered.
+- Follow-ups: continue to T51 Persistent Usage and Billing Event Ledger.
+- Notes for next agent: an Alembic CLI upgrade check was not run because the repo has no Alembic config with `script_location`; migration behavior is covered by import-based tests and direct PostgreSQL metadata/RLS tests.
+
 ### 2026-05-20 - Production Readiness Backlog - T50-T69
 
 - Scope: `docs/tasks.md`, `docs/CODEX_PROMPT.md`, `docs/EVIDENCE_INDEX.md`.

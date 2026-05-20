@@ -2,8 +2,84 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+SECRET_REDACTION = "[secret-redacted]"
+
+API_SECRET_NAMES = frozenset(
+    {
+        "APP_ENV",
+        "DATABASE_URL",
+        "REDIS_URL",
+        "OPERATOR_AUTH_SECRET",
+        "WEBHOOK_SHARED_SECRET",
+    }
+)
+WORKER_SECRET_NAMES = frozenset(
+    {
+        "APP_ENV",
+        "DATABASE_URL",
+        "REDIS_URL",
+        "EMAIL_API_KEY",
+        "EMAIL_SENDER",
+        "EMAIL_API_URL",
+        "CALENDAR_API_TOKEN",
+        "CALENDAR_API_URL",
+        "CRM_API_TOKEN",
+        "CRM_API_URL",
+        "EMBEDDING_API_KEY",
+        "EMBEDDING_MODEL",
+        "EMBEDDING_DIMENSIONS",
+        "EMBEDDING_API_URL",
+        "MAX_AUTONOMOUS_TURNS",
+        "MAX_TOOL_CALLS_PER_TURN",
+        "MAX_INDEX_AGE_HOURS",
+    }
+)
+DEPLOY_SECRET_NAMES = frozenset(
+    {
+        "STAGING_VPS_HOST",
+        "STAGING_VPS_USER",
+        "STAGING_VPS_SSH_KEY",
+        "PRODUCTION_VPS_HOST",
+        "PRODUCTION_VPS_USER",
+        "PRODUCTION_VPS_SSH_KEY",
+    }
+)
+PROVIDER_SECRET_NAMES_BY_ADAPTER = {
+    "email": frozenset({"EMAIL_API_KEY", "EMAIL_SENDER", "EMAIL_API_URL"}),
+    "calendar": frozenset({"CALENDAR_API_TOKEN", "CALENDAR_API_URL"}),
+    "crm": frozenset({"CRM_API_TOKEN", "CRM_API_URL"}),
+    "embedding": frozenset(
+        {"EMBEDDING_API_KEY", "EMBEDDING_MODEL", "EMBEDDING_DIMENSIONS", "EMBEDDING_API_URL"}
+    ),
+}
+REQUIRED_SECRETS_BY_ENVIRONMENT = {
+    "local": {
+        "api": API_SECRET_NAMES,
+        "worker": WORKER_SECRET_NAMES,
+        "deploy": frozenset[str](),
+    },
+    "staging": {
+        "api": API_SECRET_NAMES,
+        "worker": WORKER_SECRET_NAMES,
+        "deploy": frozenset({"STAGING_VPS_HOST", "STAGING_VPS_USER", "STAGING_VPS_SSH_KEY"}),
+    },
+    "production": {
+        "api": API_SECRET_NAMES,
+        "worker": WORKER_SECRET_NAMES,
+        "deploy": frozenset(
+            {"PRODUCTION_VPS_HOST", "PRODUCTION_VPS_USER", "PRODUCTION_VPS_SSH_KEY"}
+        ),
+    },
+}
+
+
+class MissingRequiredSecretError(RuntimeError):
+    """Raised when required secret names are absent without exposing values."""
 
 
 class Settings(BaseSettings):
@@ -63,3 +139,32 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Create settings from the current environment."""
     return Settings()
+
+
+def required_secret_names(app_env: str, runtime: str) -> frozenset[str]:
+    try:
+        runtime_contract = REQUIRED_SECRETS_BY_ENVIRONMENT[app_env]
+    except KeyError:
+        raise ValueError("unsupported app environment") from None
+    try:
+        return runtime_contract[runtime]
+    except KeyError:
+        raise ValueError("unsupported runtime") from None
+
+
+def validate_required_secrets(
+    *,
+    app_env: str,
+    runtime: str,
+    environ: Mapping[str, str | None],
+) -> None:
+    missing = sorted(
+        name for name in required_secret_names(app_env, runtime) if not environ.get(name)
+    )
+    if missing:
+        raise MissingRequiredSecretError("missing required secrets: " + ", ".join(missing))
+
+
+def redact_secret_value(value: str | None) -> str:
+    del value
+    return SECRET_REDACTION

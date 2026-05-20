@@ -20,9 +20,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements-dev.txt -e .
       - name: Lint
-        run: ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py
+        run: ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py
       - name: Format check
-        run: ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py
+        run: ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py
 
   unit:
     name: Unit Tests
@@ -133,4 +133,4 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements-dev.txt -e .
       - name: Deployment docs and secret policy
-        run: python -m pytest tests/unit/test_deployment_docs.py tests/unit/test_secret_policy.py -q --tb=short
+        run: python -m pytest tests/unit/test_deployment_docs.py tests/unit/test_deployment_target_docs.py tests/unit/test_secret_policy.py tests/unit/test_rollback_rehearsal.py -q --tb=short
