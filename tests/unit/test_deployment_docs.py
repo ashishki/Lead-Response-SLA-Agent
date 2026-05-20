@@ -49,3 +49,13 @@ def test_runbook_documents_secret_source() -> None:
 
     assert "environment variables or deployment secret storage" in content
     assert "Do not commit real credentials" in content
+
+
+def test_runbook_documents_release_and_rollback_discipline() -> None:
+    content = Path("docs/runbook.md").read_text(encoding="utf-8")
+
+    assert "Release Discipline" in content
+    assert "unit tests, integration tests, eval gates, and deployment checks" in content
+    assert "Run `alembic upgrade head` against the staging database" in content
+    assert "Take a production PostgreSQL backup immediately before migration" in content
+    assert "Rollback validation" in content

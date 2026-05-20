@@ -15,6 +15,29 @@ Configure the inbound provider webhook URL as `/webhooks/inbound`. Set `WEBHOOK_
 
 Load tenant-approved text FAQ, pricing, service-area, booking, cancellation, and escalation documents through the ingestion pipeline. Keep source documents canonical so the vector/index rows can be rebuilt when the embedding model or index schema changes.
 
+## Assisted Tenant Onboarding
+
+Use the assisted onboarding checklist before launching a second tenant:
+
+```bash
+python scripts/onboard_tenant.py \
+  --tenant-name "DFW Door Pilot" \
+  --tenant-slug "dfw-door-pilot" \
+  --operator-email "operator@example.test"
+```
+
+The checklist must fit within one working day and cover:
+
+- tenant creation
+- provider sandbox send/receive test
+- approved knowledge upload
+- operator account setup
+- at least 10 tenant-specific knowledge questions
+- operator approval path
+- test lead validation
+
+Launch gate: do not enable production traffic until provider sandbox passes, the 10-question knowledge validation passes, and an operator approves/edits/sends a test review task.
+
 ## Operator Review
 
 Operators use the JSON operator API to list human-review tasks, inspect transcript references, review evidence IDs, approve or edit proposed replies, and apply outcome labels. Unsafe message categories and unsupported retrieval results must stay in the review queue until an operator approves the final action.
@@ -22,6 +45,33 @@ Operators use the JSON operator API to list human-review tasks, inspect transcri
 ## Rollback
 
 Rollback application containers to the previous image. Database migrations must be forward-only or have an explicit rollback note before deployment. Preserve PostgreSQL data and Redis can be treated as ephemeral queue/cache state.
+
+## Release Discipline
+
+CI separates checks into unit tests, integration tests, eval gates, and deployment checks. A release cannot be promoted unless all four categories pass.
+
+Staging promotion:
+
+1. Deploy the candidate image to staging.
+2. Run `alembic upgrade head` against the staging database.
+3. Run staging smoke tests: health and operator auth/RBAC.
+4. Fill out `docs/release_template.md`, including model, prompt, schema, and eval changes.
+5. Verify rollback assets: previous image, PostgreSQL backup, restore command, and smoke tests.
+
+Production promotion:
+
+1. Promote only after staging migration and smoke tests pass.
+2. Take a production PostgreSQL backup immediately before migration.
+3. Run production migrations.
+4. Run production smoke tests.
+5. Keep the previous application image available until post-release checks pass.
+
+Rollback validation:
+
+1. Restore a recent backup into a non-production database.
+2. Run `scripts/restore_postgres.sh` with `VERIFY_COMMAND` set to health and persistence smoke tests.
+3. Confirm release notes identify the previous image and backup path.
+4. Do not promote to production if rollback validation has not been completed for the release.
 
 ## Backup And Restore
 
