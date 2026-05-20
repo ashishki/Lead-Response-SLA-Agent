@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+from lead_sla_agent.audit.events import AUDIT_EVENT_POLICY_VERSION
 from lead_sla_agent.observability.pii import REDACTED_VALUE, scrub_pii
 
 EXPORT_SCHEMA_VERSION = "tenant-export-v1"
@@ -86,6 +87,12 @@ class TenantDataAdmin:
             "event_type": "tenant_data_anonymized",
             "actor_type": "operator",
             "actor_id": actor_id,
+            "actor_ref": "operator:" + actor_id,
+            "action": "tenant_data.anonymized",
+            "resource_type": "tenant",
+            "resource_id": tenant_id,
+            "result": "success",
+            "policy_version": AUDIT_EVENT_POLICY_VERSION,
             "created_at": anonymized_at,
             "event_metadata": {
                 "reason": reason,

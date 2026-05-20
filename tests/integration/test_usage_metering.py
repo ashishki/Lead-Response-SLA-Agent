@@ -4,7 +4,12 @@ from datetime import UTC, datetime
 
 import pytest
 
-from lead_sla_agent.billing.usage import USAGE_SCHEMA_VERSION, UsageEvent, UsageMeter
+from lead_sla_agent.billing.usage import (
+    PRICING_PACKAGE_MAPPING_VERSION,
+    USAGE_SCHEMA_VERSION,
+    UsageEvent,
+    UsageMeter,
+)
 
 
 def test_usage_events_are_tenant_scoped_and_append_only() -> None:
@@ -32,6 +37,7 @@ def test_monthly_usage_export_counts_billing_dimensions_without_pii() -> None:
     export = meter.monthly_export("tenant-1", 2026, 5)
 
     assert export["schema_version"] == USAGE_SCHEMA_VERSION
+    assert export["pricing_mapping_version"] == PRICING_PACKAGE_MAPPING_VERSION
     assert export["tenant_id"] == "tenant-1"
     assert export["period"] == "2026-05"
     assert export["usage"] == {

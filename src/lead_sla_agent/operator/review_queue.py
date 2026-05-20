@@ -11,6 +11,8 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from lead_sla_agent.audit.events import AuditEventInput
+from lead_sla_agent.db.audit_repository import AuditLogRepository
 from lead_sla_agent.db.models import HumanReviewApproval, HumanReviewTask
 from lead_sla_agent.db.tenant import apply_tenant_context
 from lead_sla_agent.observability.tracing import get_tracer
@@ -48,6 +50,17 @@ class HumanReviewTaskStore:
                 )
                 self.session.add(task)
                 await _safe_flush(self.session)
+                await AuditLogRepository(self.session).append(
+                    AuditEventInput(
+                        tenant_id=str(tenant_uuid),
+                        actor_ref="system:agent",
+                        action="human_review_task.created",
+                        resource_type="human_review_task",
+                        resource_id=str(task.id),
+                        result="success",
+                        payload={"handoff_reason": handoff_reason},
+                    )
+                )
             return _task_row(task)
 
         task = {
@@ -117,6 +130,21 @@ class HumanReviewTaskStore:
                 )
                 self.session.add(approval)
                 await _safe_flush(self.session)
+                await AuditLogRepository(self.session).append(
+                    AuditEventInput(
+                        tenant_id=str(tenant_uuid),
+                        actor_ref="operator:" + actor_id,
+                        action="human_review_reply.approved",
+                        resource_type="human_review_task",
+                        resource_id=task_id,
+                        result="sent",
+                        payload={
+                            "reason_code": reason_code,
+                            "original_draft_hash": audit_record["original_draft_hash"],
+                            "final_message_hash": audit_record["final_message_hash"],
+                        },
+                    )
+                )
             return audit_record
 
         self._mark_memory_task_status(task_id, "sent")
@@ -163,6 +191,20 @@ class HumanReviewTaskStore:
                 )
                 self.session.add(approval)
                 await _safe_flush(self.session)
+                await AuditLogRepository(self.session).append(
+                    AuditEventInput(
+                        tenant_id=str(tenant_uuid),
+                        actor_ref="operator:" + actor_id,
+                        action="human_review_reply.no_send",
+                        resource_type="human_review_task",
+                        resource_id=task_id,
+                        result="no_send",
+                        payload={
+                            "reason_code": reason_code,
+                            "original_draft_hash": audit_record["original_draft_hash"],
+                        },
+                    )
+                )
             return audit_record
 
         self._mark_memory_task_status(task_id, "no_send")

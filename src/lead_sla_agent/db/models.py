@@ -6,7 +6,7 @@ import uuid
 from datetime import date, datetime
 from typing import Any
 
-from sqlalchemy import Date, DateTime, ForeignKey, Index, String, UniqueConstraint, func
+from sqlalchemy import Date, DateTime, ForeignKey, Index, Integer, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -152,3 +152,72 @@ class OutcomeLabel(TenantScopedMixin, UUIDPrimaryKeyMixin, CreatedAtMixin, Base)
     )
     label: Mapped[str] = mapped_column(String(64), nullable=False)
     labeled_on: Mapped[date] = mapped_column(Date, nullable=False)
+
+
+class TenantConfig(TenantScopedMixin, UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
+    __tablename__ = "tenant_config"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", name="uq_tenant_config_tenant_id"),
+        Index("ix_tenant_config_tenant_version", "tenant_id", "version"),
+    )
+
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    config: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+
+class TenantConfigAudit(TenantScopedMixin, UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
+    __tablename__ = "tenant_config_audit"
+    __table_args__ = (
+        UniqueConstraint(
+            "tenant_id",
+            "config_version",
+            name="uq_tenant_config_audit_tenant_config_version",
+        ),
+        Index("ix_tenant_config_audit_tenant_created", "tenant_id", "created_at"),
+    )
+
+    config_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    actor_id: Mapped[str] = mapped_column(String(120), nullable=False)
+    actor_role: Mapped[str] = mapped_column(String(64), nullable=False)
+    changed_fields: Mapped[list[str]] = mapped_column(JSONB, nullable=False)
+    approval_id: Mapped[str | None] = mapped_column(String(120))
+    event_metadata: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+
+
+class UsageLedgerEvent(TenantScopedMixin, UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
+    __tablename__ = "usage_ledger_event"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "event_id", name="uq_usage_ledger_event_tenant_event_id"),
+        Index("ix_usage_ledger_event_tenant_occurred", "tenant_id", "occurred_at"),
+    )
+
+    event_id: Mapped[str] = mapped_column(String(120), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    metadata_: Mapped[dict[str, Any]] = mapped_column(
+        "metadata", JSONB, nullable=False, default=dict
+    )
+    pricing_mapping_version: Mapped[str] = mapped_column(String(64), nullable=False)
+
+
+class AuditLogEvent(TenantScopedMixin, UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
+    __tablename__ = "audit_log_event"
+    __table_args__ = (
+        Index("ix_audit_log_event_tenant_created", "tenant_id", "created_at"),
+        Index("ix_audit_log_event_tenant_action", "tenant_id", "action"),
+    )
+
+    actor_ref: Mapped[str] = mapped_column(String(160), nullable=False)
+    action: Mapped[str] = mapped_column(String(120), nullable=False)
+    resource_type: Mapped[str] = mapped_column(String(120), nullable=False)
+    resource_id: Mapped[str] = mapped_column(String(160), nullable=False)
+    result: Mapped[str] = mapped_column(String(64), nullable=False)
+    policy_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)

@@ -16,6 +16,10 @@ EXPECTED_TABLES = {
     "human_review_task",
     "human_review_approval",
     "outcome_label",
+    "tenant_config",
+    "tenant_config_audit",
+    "usage_ledger_event",
+    "audit_log_event",
 }
 
 
