@@ -1,8 +1,8 @@
 # CODEX_PROMPT.md
 
 Version: 2.0
-Date: 2026-05-19
-Phase: 7
+Date: 2026-05-20
+Phase: 10
 Status: active
 
 This is the compact state file for the Codex development loop. Keep it short. Do not paste completed task history here; durable history belongs in `docs/IMPLEMENTATION_JOURNAL.md`, `docs/EVIDENCE_INDEX.md`, and archived task files.
@@ -13,14 +13,14 @@ Execution mode: Codex-only. Do not invoke Codex through `codex exec` or any nest
 
 ## Current State
 
-- Product state: validated prototype completed through T18.
+- Product state: validated prototype completed through T18; production persistence/runtime hardening completed through T23; first provider integrations completed through T27; LLM/RAG productionization completed through T31; operator UX and feedback loop completed through T33; pilot vertical package completed through T36; security/reliability/privacy baseline completed through T40; revenue validation artifacts completed through T43.
 - Active task graph: `docs/tasks.md` T19-T49.
 - Completed task archive: `docs/archive/tasks_T01_T18_completed.md`.
 - Prior prompt archive: `docs/archive/CODEX_PROMPT_T01_T18_completed.md`.
-- Last verified baseline: 58 passing tests (`.venv/bin/python -m pytest tests/ -q --tb=short`).
-- Last verified lint: passing (`.venv/bin/ruff check src/lead_sla_agent tests`; `.venv/bin/ruff format --check src/lead_sla_agent tests`).
-- Last phase review: `docs/audit/PHASE6_REVIEW.md`.
-- Last updated: 2026-05-19.
+- Last verified baseline: 146 passing tests (`DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` against isolated local PostgreSQL and Redis).
+- Last verified lint: passing (`.venv/bin/ruff check src/lead_sla_agent tests alembic`; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic`).
+- Last phase review: `docs/audit/PHASE13_REVIEW.md`.
+- Last updated: 2026-05-20.
 
 ---
 
@@ -40,15 +40,15 @@ Execution mode: Codex-only. Do not invoke Codex through `codex exec` or any nest
 
 ## Next Task
 
-T19: Database-Backed Lead, Conversation, Transcript, Review, and Outcome Repositories
+T44: Assisted Onboarding Workflow
 
 Task source: `docs/tasks.md`
 
 Task digest:
-- Phase 7 starts production persistence and runtime hardening.
-- Replace in-memory runtime repositories with async SQLAlchemy persistence where T19 scopes it.
+- Build a guided setup flow/checklist for tenant creation, provider connection, knowledge upload, operator accounts, and test lead validation.
+- Onboarding must initialize a new tenant in under one working day.
+- Provider sandbox event, at least 10 tenant knowledge questions, and operator approval path must be tested before launch.
 - Preserve tenant isolation, PII redaction, T1 runtime, and existing eval gates.
-- Do not broaden into T20 transaction/idempotency work except for interfaces required by T19 tests.
 
 ---
 
