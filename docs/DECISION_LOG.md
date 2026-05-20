@@ -1,7 +1,7 @@
 # Decision Log - Lead Response SLA Agent
 
 Version: 1.0
-Last updated: 2026-05-19
+Last updated: 2026-05-20
 
 This file is a retrieval index for important decisions. Canonical project documents win if this file conflicts with them.
 
@@ -29,11 +29,13 @@ This file is a retrieval index for important decisions. Canonical project docume
 | D-007 | 2026-05-19 | Active | Use Dream Motif Interpreter as a RAG reference, not a dependency. | It provides proven patterns for source contracts, normalized ingestion, pgvector/HNSW, hybrid vector+FTS retrieval, exact recall, insufficient evidence, and eval discipline; this project must adapt them for tenant isolation, PII, and lead-response knowledge. | `docs/RAG_REFERENCE.md` | none |
 | D-008 | 2026-05-19 | Active | Run development in a nonstop loop across clean phase boundaries. | Phase boundaries are checkpoints for verification and evidence, not manual pause points. Codex continues to the next task/phase unless a stop condition exists. | `docs/prompts/ORCHESTRATOR.md#nonstop-loop-policy` | none |
 | D-009 | 2026-05-19 | Active | Use `local-hash-embedding-v1` as the deterministic T09 ingestion adapter. | T09 needs versioned embedding metadata and idempotent ingestion tests without introducing provider SDKs or credentials; production embedding selection still requires an ADR/eval update. | `docs/retrieval_eval.md#architecture-metadata` | none |
+| D-010 | 2026-05-20 | Active | Use OpenAI `text-embedding-3-small` at 1536 dimensions as the v1 production embedding model. | Phase 9 needs a real text embedding provider while keeping deterministic/fake embeddings in normal tests; model or dimension changes require ADR and full reindex. | `docs/adr/ADR-002-production-embedding-provider.md` | none |
+| D-011 | 2026-05-20 | Active | Use the authenticated internal JSON operator API as the first pilot console surface. | T32 needs review, approve/edit/send, no-send, and outcome workflows now; a frontend can follow once live operator behavior stabilizes. | `docs/adr/ADR-003-operator-console-surface.md` | none |
 
 ---
 
 ## Retrieval Notes
 
-- Read D-001 through D-009 before changing solution shape, runtime tier, active profiles, retrieval mode, approval boundaries, execution model, loop cadence, or RAG implementation strategy.
+- Read D-001 through D-011 before changing solution shape, runtime tier, active profiles, retrieval mode, approval boundaries, execution model, loop cadence, model strategy, RAG implementation strategy, or the operator console surface.
 - Prefer task `Context-Refs` when implementing a narrow task.
 - Add an ADR for changes that alter immutable contract rules, runtime tier, retrieval mode, active profiles, or governance level.

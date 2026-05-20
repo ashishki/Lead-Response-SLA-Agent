@@ -1,7 +1,7 @@
 # Retrieval Evaluation - Lead Response SLA Agent
 
 Version: 1.0
-Last updated: 2026-05-19
+Last updated: 2026-05-20
 Profile: RAG ON
 Retrieval mode: text-only
 
@@ -57,7 +57,9 @@ A fluent answer can hide bad retrieval. Correct retrieval can still lead to a ba
 | Index schema version | `rag-index-v1` |
 | Retrieval mode | text-only |
 | Reference implementation | `docs/RAG_REFERENCE.md`, based on `https://github.com/ashishki/Dream_Motif_Interpreter` |
-| Embedding model | `local-hash-embedding-v1` |
+| Deterministic embedding model | `local-hash-embedding-v1` |
+| Production embedding model | `text-embedding-3-small` |
+| Production embedding dimensions | `1536` |
 | Chunking strategy | markdown-heading-v1 |
 | Baseline status | T10 seed retrieval baseline established |
 | Max index age | 24 hours |
@@ -70,6 +72,9 @@ A fluent answer can hide bad retrieval. Correct retrieval can still lead to a ba
 ## Evaluation Dataset
 
 Seed dataset path: `tests/eval/fixtures/retrieval_seed.json`
+Pilot-like dataset path: `tests/eval/fixtures/retrieval_pilot_seed.json`
+Operator feedback candidate path: `tests/eval/fixtures/operator_feedback_candidates.json`
+Vertical garage door pack eval path: `seed/verticals/garage_door_repair/retrieval_eval.json`
 
 Initial dataset requirements:
 - At least 10 queries.
@@ -136,6 +141,11 @@ Do not use answer quality to mask retrieval regressions.
 | 2026-05-19 | Bootstrap | documentation initialization; no retrieval run yet | n/a | planned seed dataset | not yet measured | n/a | pending | Baseline will be established by T09/T10. |
 | 2026-05-19 | T09 | `.venv/bin/python -m pytest tests/eval/test_retrieval_eval.py::test_retrieval_eval_metadata_initialized tests/integration/test_retrieval_ingestion.py, run 2026-05-19` | `rag-index-v1` | `tests/eval/fixtures/retrieval_seed.json` planned seed path | ingestion metadata only; retrieval quality not yet measured | code-change-induced | pass | Text-only ingestion metadata initialized with deterministic local embedding adapter; retrieval metric baseline remains pending T10. |
 | 2026-05-19 | T10 | `.venv/bin/python -m pytest tests/eval/test_retrieval_eval.py::test_retrieval_eval_computes_seed_metrics tests/integration/test_retrieval_query.py, run 2026-05-19` | `rag-index-v1` | `tests/eval/fixtures/retrieval_seed.json` | hit@3=1.00; hit@5=1.00; MRR=1.00; citation_precision=1.00; no-answer accuracy=1.00; retrieval_p95_latency_ms<1 local | code-change-induced | pass | Tenant filtering and insufficient-evidence handoff covered by integration tests; local deterministic baseline only. |
+| 2026-05-20 | T28 | `.venv/bin/python -m pytest tests/integration/test_embedding_adapter.py tests/eval/test_retrieval_eval.py, run 2026-05-20` | `rag-index-v1` | `tests/eval/fixtures/retrieval_seed.json` plus fake-provider production adapter contract | deterministic baseline unchanged: hit@3=1.00; hit@5=1.00; MRR=1.00; citation_precision=1.00; no-answer accuracy=1.00; production embedding baseline: model=`text-embedding-3-small`, dimensions=1536, fake-provider contract pass=100% | code-change-induced | pass | ADR-002 records model selection and reindex requirement; live provider quality run remains opt-in for pilot corpus. |
+| 2026-05-20 | T29 | `.venv/bin/python -m pytest tests/integration/test_knowledge_admin.py tests/eval/test_retrieval_eval.py, run 2026-05-20` | `rag-index-v1` | `tests/eval/fixtures/retrieval_seed.json` plus operator knowledge admin scenarios | deterministic baseline unchanged: hit@3=1.00; hit@5=1.00; MRR=1.00; citation_precision=1.00; no-answer accuracy=1.00; admin upload/list/disable/reindex pass=100%; disabled document active-retrieval count=0 | code-change-induced | pass | Operator API records actor, timestamp, corpus version, and index schema version for reindex requests; raw transcript upload requires explicit approved-knowledge flag. |
+| 2026-05-20 | T30 | `.venv/bin/python -m pytest tests/eval/test_retrieval_eval.py::test_pilot_retrieval_fixture_has_required_question_slices tests/eval/test_retrieval_eval.py::test_pilot_retrieval_fixture_contains_no_raw_customer_pii tests/eval/test_retrieval_eval.py::test_retrieval_eval_records_valid_t30_history_row, run 2026-05-20` | `rag-index-v1` | `tests/eval/fixtures/retrieval_pilot_seed.json` | pilot dataset validation pass=100%; question_count=50; required slices present: pricing, service_area, cancellation, booking, exact_terms, unsupported, stale, tenant_isolation; PII fixture scan pass=100% | eval-change-induced | pass | Pilot-like dataset is synthetic but modeled on transcript/operator-feedback scenarios; no raw customer PII stored. |
+| 2026-05-20 | T33 | `.venv/bin/python -m pytest tests/eval/test_operator_feedback.py tests/eval/test_retrieval_eval.py, run 2026-05-20` | `rag-index-v1` | `tests/eval/fixtures/operator_feedback_candidates.json` accepted retrieval partition | accepted operator feedback retrieval candidates=1; human approval gate pass=100%; de-identified text PII scan pass=100% | eval-change-induced | pass | Unapproved feedback remains candidate-only and is excluded from canonical retrieval regression partitions. |
+| 2026-05-20 | T35 | `.venv/bin/python -m pytest tests/integration/test_vertical_pack.py tests/eval/test_retrieval_eval.py, run 2026-05-20` | `rag-index-v1` | `seed/verticals/garage_door_repair/retrieval_eval.json` plus `seed/verticals/garage_door_repair/corpus.json` | vertical corpus documents=5; vertical eval queries=6; required slices present: service_area, pricing, booking, safety, high_value, unsupported; expected-source coverage=100% | eval-change-induced | pass | Garage door repair pack can initialize a demo tenant and supplies an approved corpus plus retrieval eval cases. |
 
 ---
 

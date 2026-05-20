@@ -1,7 +1,7 @@
 # Agent Evaluation - Lead Response SLA Agent
 
 Version: 1.0
-Last updated: 2026-05-19
+Last updated: 2026-05-20
 Profile: Agentic ON
 
 ---
@@ -19,6 +19,10 @@ This artifact tracks the bounded conversation loop. Agentic tasks are not comple
 | Loop contract version | `agent-loop-v1` |
 | Agent role | Bounded lead qualification conversation runtime |
 | State source | PostgreSQL conversation state and transcript rows |
+| Model output schema version | `model-output-schema-v1` |
+| Qualification prompt version | `qualification-prompt-v1` |
+| Acknowledgement prompt version | `acknowledgement-prompt-v1` |
+| Policy version | `conversation-policy-v1` |
 | Max autonomous turns | Default 6 |
 | Max tool calls per turn | Default 3 |
 | Runtime subagents | Not allowed in v1 |
@@ -80,6 +84,8 @@ This artifact tracks the bounded conversation loop. Agentic tasks are not comple
 |------|------|--------------|---------|---------|--------|-------|
 | 2026-05-19 | Bootstrap | planned `agent-loop-v1` | planned scenarios | not yet measured | pending | Baseline will be established by T13. |
 | 2026-05-19 | T13 | `agent-loop-v1` | `tests/integration/test_conversation_loop.py` scenarios | allowed-action accuracy=100%; termination reason accuracy=100%; handoff integrity=100%; tool-call budget enforcement=100% | pass | Deterministic bounded runtime covers missing fields, unsupported policy handoff, and max-turn budget termination. |
+| 2026-05-20 | T31 | `agent-loop-v1` | `tests/integration/test_model_versioning.py` scenarios | model output version coverage=100%; prompt version coverage=100%; policy decision coverage=100%; unsupported-evidence text block=100% | pass | Model-like outputs carry model name, prompt version, schema version, and policy decision; insufficient evidence remains a human-review path with no customer-facing draft. |
+| 2026-05-20 | T33 | `agent-loop-v1` | `tests/eval/fixtures/operator_feedback_candidates.json` accepted agent partition | accepted operator feedback agent candidates=1; human approval gate pass=100%; de-identified text PII scan pass=100% | pass | Operator no-send correction for unsupported policy questions becomes an accepted regression candidate only after reviewer approval metadata is present. |
 
 ---
 
