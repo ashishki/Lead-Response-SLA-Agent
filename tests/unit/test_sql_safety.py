@@ -3,7 +3,11 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-REPOSITORY_MODULES = [Path("src/lead_sla_agent/db/repositories.py")]
+REPOSITORY_MODULES = [
+    Path("src/lead_sla_agent/db/repositories.py"),
+    Path("src/lead_sla_agent/db/lead_repository.py"),
+    Path("src/lead_sla_agent/db/transcript_repository.py"),
+]
 
 
 def test_repository_sql_uses_named_parameters() -> None:

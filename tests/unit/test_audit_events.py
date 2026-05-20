@@ -46,7 +46,7 @@ async def test_audit_repository_append_only_interface() -> None:
     assert isinstance(event, AuditEvent)
     assert event in session.added
     assert session.flush_count == 1
-    assert str(session.executions[0][0]) == "SET LOCAL app.tenant_id = :tenant_id"
+    assert str(session.executions[0][0]) == "SELECT set_config('app.tenant_id', :tenant_id, true)"
     assert session.executions[0][1] == {"tenant_id": str(tenant_id)}
 
     public_methods = {

@@ -45,7 +45,7 @@ async def test_repository_requires_tenant_context() -> None:
 
     assert len(session.executions) == 2
     tenant_context_statement, tenant_context_parameters = session.executions[0]
-    assert str(tenant_context_statement) == "SET LOCAL app.tenant_id = :tenant_id"
+    assert str(tenant_context_statement) == "SELECT set_config('app.tenant_id', :tenant_id, true)"
     assert tenant_context_parameters == {"tenant_id": str(tenant_id)}
 
     with pytest.raises(ValueError, match="tenant_id is required"):

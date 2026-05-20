@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, UniqueConstraint, func
+from sqlalchemy import Date, DateTime, ForeignKey, Index, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -86,8 +86,69 @@ class ProviderEvent(TenantScopedMixin, UUIDPrimaryKeyMixin, CreatedAtMixin, Base
     source_event_id: Mapped[str] = mapped_column(String(255), nullable=False)
     channel: Mapped[str] = mapped_column(String(32), nullable=False)
     payload_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    lead_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("lead.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    conversation_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("conversation.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     received_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
     )
+
+
+class HumanReviewTask(TenantScopedMixin, UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
+    __tablename__ = "human_review_task"
+    __table_args__ = (
+        Index("ix_human_review_task_tenant_status", "tenant_id", "status"),
+        Index("ix_human_review_task_tenant_created", "tenant_id", "created_at"),
+    )
+
+    conversation_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("conversation.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    handoff_reason: Mapped[str] = mapped_column(String(120), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="open")
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+
+
+class HumanReviewApproval(TenantScopedMixin, UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
+    __tablename__ = "human_review_approval"
+
+    review_task_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("human_review_task.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    actor_id: Mapped[str] = mapped_column(String(120), nullable=False)
+    approved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    original_draft_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    final_message_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    reason_code: Mapped[str] = mapped_column(String(120), nullable=False)
+    send_status: Mapped[str] = mapped_column(String(32), nullable=False)
+
+
+class OutcomeLabel(TenantScopedMixin, UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
+    __tablename__ = "outcome_label"
+    __table_args__ = (Index("ix_outcome_label_tenant_labeled_on", "tenant_id", "labeled_on"),)
+
+    lead_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("lead.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    label: Mapped[str] = mapped_column(String(64), nullable=False)
+    labeled_on: Mapped[date] = mapped_column(Date, nullable=False)

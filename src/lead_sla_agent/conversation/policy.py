@@ -26,3 +26,22 @@ class TerminationReason(StrEnum):
 
 
 ALLOWED_ACTIONS = {action.value for action in AllowedAction}
+POLICY_VERSION = "conversation-policy-v1"
+
+
+class PolicyDecision(StrEnum):
+    ANSWER_ALLOWED = "answer_allowed"
+    ASK_FOR_QUALIFICATION = "ask_for_qualification"
+    ACKNOWLEDGE_ALLOWED = "acknowledge_allowed"
+    HUMAN_REVIEW_REQUIRED = "human_review_required"
+
+
+def policy_decision_for_retrieval_status(status: str) -> PolicyDecision:
+    if status == "insufficient_evidence":
+        return PolicyDecision.HUMAN_REVIEW_REQUIRED
+    return PolicyDecision.ANSWER_ALLOWED
+
+
+def can_draft_customer_reply(retrieval_status: str) -> bool:
+    """Return whether retrieval status permits customer-facing answer text."""
+    return policy_decision_for_retrieval_status(retrieval_status) == PolicyDecision.ANSWER_ALLOWED

@@ -1,0 +1,133 @@
+{
+  "schema_version": "operator-feedback-candidates-v1",
+  "generated_on": "2026-05-20",
+  "source": "synthetic operator corrections modeled on approved pilot workflow patterns",
+  "candidates": [
+    {
+      "schema_version": "operator-feedback-candidates-v1",
+      "candidate_id": "opfb-retrieval-001",
+      "tenant_id": "tenant-1",
+      "task_id": "review-feedback-1",
+      "deidentified": true,
+      "approval": {
+        "status": "accepted",
+        "human_approved_for_eval": true,
+        "approved_by_hash": "sha256:1ce1b7c67ea9326a4d7162c0f0b27b044c6f608db366fc85eeb78ba7acd55c80",
+        "approved_at": "2026-05-20T10:00:00Z"
+      },
+      "operator_action": {
+        "action": "approve_with_edit",
+        "reason_code": "retrieval_missing_service_area",
+        "final_status": "sent",
+        "original_draft_hash": "6ad9edb05c0542b71811bb7ee1cc9f7044588d8c841f8ebc74b78869b72ab3ee",
+        "final_message_hash": "2ef1fe461ab8919be7381c75b7aeced1226c5149d82f6495c1ea762e75eca8c5"
+      },
+      "review_context": {
+        "transcript_refs": ["msg-service-area-1"],
+        "evidence_ids": ["service-area-policy"]
+      },
+      "eval_targets": {
+        "retrieval": {
+          "slice": "operator_feedback",
+          "query": "Do you cover the north route on Saturday morning?",
+          "expected_status": "evidence",
+          "expected_source_document_ids": ["service-area-policy"]
+        }
+      }
+    },
+    {
+      "schema_version": "operator-feedback-candidates-v1",
+      "candidate_id": "opfb-tool-001",
+      "tenant_id": "tenant-1",
+      "task_id": "review-feedback-2",
+      "deidentified": true,
+      "approval": {
+        "status": "accepted",
+        "human_approved_for_eval": true,
+        "approved_by_hash": "sha256:1ce1b7c67ea9326a4d7162c0f0b27b044c6f608db366fc85eeb78ba7acd55c80",
+        "approved_at": "2026-05-20T10:05:00Z"
+      },
+      "operator_action": {
+        "action": "no_send",
+        "reason_code": "booking_without_acceptance",
+        "final_status": "no_send",
+        "original_draft_hash": "87e06f50ea0b423c2d8a3c2fd96593c1ed6b6f6ed764b42caeb99e6e1987e9bb",
+        "final_message_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "review_context": {
+        "transcript_refs": ["msg-booking-1"],
+        "evidence_ids": ["booking-policy"]
+      },
+      "eval_targets": {
+        "tool": {
+          "tool_name": "book_slot",
+          "scenario": "booking_without_explicit_acceptance",
+          "expected_result": "human_review_required"
+        }
+      }
+    },
+    {
+      "schema_version": "operator-feedback-candidates-v1",
+      "candidate_id": "opfb-agent-001",
+      "tenant_id": "tenant-1",
+      "task_id": "review-feedback-3",
+      "deidentified": true,
+      "approval": {
+        "status": "accepted",
+        "human_approved_for_eval": true,
+        "approved_by_hash": "sha256:1ce1b7c67ea9326a4d7162c0f0b27b044c6f608db366fc85eeb78ba7acd55c80",
+        "approved_at": "2026-05-20T10:10:00Z"
+      },
+      "operator_action": {
+        "action": "no_send",
+        "reason_code": "unsupported_policy_question",
+        "final_status": "no_send",
+        "original_draft_hash": "f2a207c4573e6449a603e93e95325d809fc98fa44f0f24d92b7d9a8cf5f1d812",
+        "final_message_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "review_context": {
+        "transcript_refs": ["msg-unsupported-1"],
+        "evidence_ids": []
+      },
+      "eval_targets": {
+        "agent": {
+          "scenario": "unsupported_policy_question_after_operator_rejects_draft",
+          "expected_termination_reason": "unsupported_question",
+          "expected_action": "create_human_review_handoff"
+        }
+      }
+    },
+    {
+      "schema_version": "operator-feedback-candidates-v1",
+      "candidate_id": "opfb-candidate-001",
+      "tenant_id": "tenant-1",
+      "task_id": "review-feedback-4",
+      "deidentified": true,
+      "approval": {
+        "status": "candidate",
+        "human_approved_for_eval": false,
+        "approved_by_hash": null,
+        "approved_at": null
+      },
+      "operator_action": {
+        "action": "approve_with_edit",
+        "reason_code": "needs_second_review",
+        "final_status": "sent",
+        "original_draft_hash": "498c764d3ff2a035f897cf49fc44216c88733291bf76025beb87da956e3c615e",
+        "final_message_hash": "982fd34d4c3b9b5e846121323242cedc74428bc4043af4be9f3f6576c729d5db"
+      },
+      "review_context": {
+        "transcript_refs": ["msg-candidate-1"],
+        "evidence_ids": ["pricing-policy"]
+      },
+      "eval_targets": {
+        "retrieval": {
+          "slice": "operator_feedback",
+          "query": "Can the team quote a same-day repair range before inspection?",
+          "expected_status": "evidence",
+          "expected_source_document_ids": ["pricing-policy"]
+        }
+      }
+    }
+  ]
+}

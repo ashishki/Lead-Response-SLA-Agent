@@ -7,7 +7,7 @@ import uuid
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-TENANT_CONTEXT_SQL = text("SET LOCAL app.tenant_id = :tenant_id")
+TENANT_CONTEXT_SQL = text("SELECT set_config('app.tenant_id', :tenant_id, true)")
 
 
 async def apply_tenant_context(session: AsyncSession, tenant_id: uuid.UUID) -> None:

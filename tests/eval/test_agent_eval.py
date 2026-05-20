@@ -12,3 +12,9 @@ def test_agent_eval_metadata_initialized() -> None:
     assert "handoff integrity=100%" in content
     assert "tool-call budget enforcement=100%" in content
     assert "T13" in content
+    assert "Model output schema version | `model-output-schema-v1`" in content
+    assert "Policy version | `conversation-policy-v1`" in content
+    assert "T31" in content
+    assert "unsupported-evidence text block=100%" in content
+    assert "T33" in content
+    assert "accepted operator feedback agent candidates=1" in content

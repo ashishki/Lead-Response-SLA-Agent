@@ -1,0 +1,52 @@
+{
+  "schema_version": "vertical-pack-v1",
+  "slug": "garage_door_repair",
+  "name": "Emergency Garage Door Repair",
+  "market": "Dallas-Fort Worth same-day and 24/7 garage door repair",
+  "required_lead_fields": [
+    "customer_name",
+    "phone",
+    "service_address_or_zip",
+    "door_issue",
+    "urgency"
+  ],
+  "optional_lead_fields": [
+    "door_type",
+    "vehicle_trapped",
+    "door_secure",
+    "preferred_window",
+    "photos_available"
+  ],
+  "qualification_questions": [
+    "What city or ZIP code is the door in?",
+    "What is happening with the door?",
+    "Is the door stuck open, stuck closed, or is a vehicle trapped?",
+    "Is this residential or commercial?",
+    "Do you need same-day emergency help, or would a scheduled window work?",
+    "What phone number should the technician or dispatcher use?"
+  ],
+  "unsafe_categories": [
+    "pricing_commitment",
+    "arrival_time_commitment",
+    "regulated_or_safety_advice",
+    "complaint_or_refund",
+    "high_value_commercial",
+    "unsupported_policy",
+    "booking_without_acceptance"
+  ],
+  "handoff_reasons": [
+    "pricing_commitment",
+    "booking_uncertainty",
+    "regulated_or_safety_advice",
+    "complaint_or_refund",
+    "high_value_lead",
+    "unsupported_question",
+    "booking_without_acceptance"
+  ],
+  "operator_scripts": {
+    "review_opening": "Confirm service area, issue type, urgency, and safety/security risk before approving.",
+    "pricing_edit": "Use approved ranges only; final price depends on diagnosis.",
+    "no_send": "No-send drafts that promise exact arrival, exact final price, DIY spring repair, warranty approval, or refund terms.",
+    "high_value_handoff": "Route commercial, gate, dock, and multi-door jobs to the owner or commercial dispatcher."
+  }
+}

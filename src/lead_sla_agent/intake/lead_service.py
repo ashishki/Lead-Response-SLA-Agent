@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Protocol
 
 from lead_sla_agent.db.lead_repository import (
     ConversationRecord,
     InMemoryLeadRepository,
+    LeadConversationRecord,
     LeadRecord,
 )
 from lead_sla_agent.db.transcript_repository import (
@@ -14,6 +16,24 @@ from lead_sla_agent.db.transcript_repository import (
     TranscriptMessageRecord,
 )
 from lead_sla_agent.intake.schemas import NormalizedInboundEvent
+
+
+class LeadRepositoryProtocol(Protocol):
+    async def create_from_event(self, event: NormalizedInboundEvent) -> LeadConversationRecord:
+        """Create a lead and conversation from a normalized event."""
+
+
+class TranscriptRepositoryProtocol(Protocol):
+    async def append_message(
+        self,
+        tenant_id: object,
+        conversation_id: object,
+        role: str,
+        channel: str,
+        content: str,
+        provider_message_id: str | None = None,
+    ) -> TranscriptMessageRecord:
+        """Append one transcript message."""
 
 
 @dataclass(frozen=True)
@@ -28,8 +48,8 @@ class LeadService:
 
     def __init__(
         self,
-        lead_repository: InMemoryLeadRepository,
-        transcript_repository: InMemoryTranscriptRepository,
+        lead_repository: LeadRepositoryProtocol | InMemoryLeadRepository,
+        transcript_repository: TranscriptRepositoryProtocol | InMemoryTranscriptRepository,
     ) -> None:
         self.lead_repository = lead_repository
         self.transcript_repository = transcript_repository

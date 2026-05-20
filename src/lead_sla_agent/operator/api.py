@@ -8,6 +8,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
+from lead_sla_agent.operator.analytics import PilotAnalyticsStore
 from lead_sla_agent.operator.auth import OperatorPrincipal, require_operator
 from lead_sla_agent.operator.outcomes import OutcomeStore
 from lead_sla_agent.operator.review_queue import HumanReviewTaskStore
@@ -18,6 +19,11 @@ router = APIRouter(prefix="/operator", tags=["operator"])
 class ApprovalRequest(BaseModel):
     original_draft: str
     final_message: str
+    reason_code: str
+
+
+class NoSendRequest(BaseModel):
+    original_draft: str
     reason_code: str
 
 
@@ -39,9 +45,16 @@ def outcome_store(request: Request) -> OutcomeStore:
     return request.app.state.outcome_store
 
 
+def analytics_store(request: Request) -> PilotAnalyticsStore:
+    if not hasattr(request.app.state, "analytics_store"):
+        request.app.state.analytics_store = PilotAnalyticsStore()
+    return request.app.state.analytics_store
+
+
 RequireOperator = Depends(require_operator)
 ReviewStore = Depends(review_store)
 OutcomeStoreDependency = Depends(outcome_store)
+AnalyticsStore = Depends(analytics_store)
 
 
 @router.get("/reviews")
@@ -65,6 +78,23 @@ async def approve_reply(
         original_draft=payload.original_draft,
         final_message=payload.final_message,
         reason_code=payload.reason_code,
+        tenant_id=principal.tenant_id,
+    )
+
+
+@router.post("/reviews/{task_id}/no-send")
+async def mark_no_send(
+    task_id: str,
+    payload: NoSendRequest,
+    principal: OperatorPrincipal = RequireOperator,
+    store: HumanReviewTaskStore = ReviewStore,
+) -> dict[str, Any]:
+    return await store.mark_no_send(
+        task_id=task_id,
+        actor_id=principal.actor_id,
+        original_draft=payload.original_draft,
+        reason_code=payload.reason_code,
+        tenant_id=principal.tenant_id,
     )
 
 
@@ -90,3 +120,17 @@ async def query_outcome_labels(
     store: OutcomeStore = OutcomeStoreDependency,
 ) -> dict[str, list[dict[str, Any]]]:
     return {"labels": await store.query_labels(principal.tenant_id, start_date, end_date)}
+
+
+@router.get("/analytics/weekly")
+async def weekly_analytics(
+    start_date: date,
+    end_date: date,
+    principal: OperatorPrincipal = RequireOperator,
+    store: PilotAnalyticsStore = AnalyticsStore,
+) -> dict[str, Any]:
+    return store.weekly_report_payload(
+        tenant_id=principal.tenant_id,
+        start_date=start_date,
+        end_date=end_date,
+    )

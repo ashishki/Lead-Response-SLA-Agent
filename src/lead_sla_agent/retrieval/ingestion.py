@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, date, datetime
 
 from lead_sla_agent.retrieval.chunking import (
     CHUNKING_STRATEGY,
@@ -22,6 +23,27 @@ class IndexedKnowledgeChunk:
     chunk: KnowledgeChunkDraft
     embedding: list[float]
     embedding_model: str
+
+
+@dataclass(frozen=True)
+class KnowledgeDocumentRecord:
+    tenant_id: str
+    source_document_id: str
+    source_title: str
+    text: str
+    effective_date: date
+    approved_knowledge: bool
+    disabled: bool = False
+
+
+@dataclass(frozen=True)
+class ReindexRecord:
+    tenant_id: str
+    actor_id: str
+    reindexed_at: datetime
+    corpus_version: str
+    index_schema_version: str
+    active_document_count: int
 
 
 class InMemoryKnowledgeIndex:
@@ -50,6 +72,83 @@ class InMemoryKnowledgeIndex:
 
     def list_chunks(self) -> list[IndexedKnowledgeChunk]:
         return list(self.rows.values())
+
+
+class InMemoryKnowledgeAdminStore:
+    """Tenant-scoped source document admin store used by operator APIs."""
+
+    def __init__(self) -> None:
+        self.documents: dict[tuple[str, str], KnowledgeDocumentRecord] = {}
+        self.reindex_records: list[ReindexRecord] = []
+
+    async def upload_document(
+        self,
+        tenant_id: str,
+        source_document_id: str,
+        source_title: str,
+        text: str,
+        effective_date: date,
+        approved_knowledge: bool,
+    ) -> KnowledgeDocumentRecord:
+        if not approved_knowledge and _looks_like_customer_transcript(text):
+            raise ValueError("raw customer transcript data must be marked as approved knowledge")
+
+        record = KnowledgeDocumentRecord(
+            tenant_id=tenant_id,
+            source_document_id=source_document_id,
+            source_title=source_title,
+            text=text,
+            effective_date=effective_date,
+            approved_knowledge=approved_knowledge,
+            disabled=False,
+        )
+        self.documents[(tenant_id, source_document_id)] = record
+        return record
+
+    async def list_documents(self, tenant_id: str) -> list[KnowledgeDocumentRecord]:
+        return [document for document in self.documents.values() if document.tenant_id == tenant_id]
+
+    async def disable_document(
+        self,
+        tenant_id: str,
+        source_document_id: str,
+    ) -> KnowledgeDocumentRecord | None:
+        existing = self.documents.get((tenant_id, source_document_id))
+        if existing is None:
+            return None
+        disabled = KnowledgeDocumentRecord(
+            tenant_id=existing.tenant_id,
+            source_document_id=existing.source_document_id,
+            source_title=existing.source_title,
+            text=existing.text,
+            effective_date=existing.effective_date,
+            approved_knowledge=existing.approved_knowledge,
+            disabled=True,
+        )
+        self.documents[(tenant_id, source_document_id)] = disabled
+        return disabled
+
+    async def list_documents_for_retrieval(self, tenant_id: str) -> list[KnowledgeDocumentRecord]:
+        return [
+            document for document in await self.list_documents(tenant_id) if not document.disabled
+        ]
+
+    async def record_reindex(
+        self,
+        tenant_id: str,
+        actor_id: str,
+    ) -> ReindexRecord:
+        active_documents = await self.list_documents_for_retrieval(tenant_id)
+        record = ReindexRecord(
+            tenant_id=tenant_id,
+            actor_id=actor_id,
+            reindexed_at=datetime.now(tz=UTC),
+            corpus_version="corpus-v" + str(len(self.reindex_records) + 1),
+            index_schema_version=INDEX_SCHEMA_VERSION,
+            active_document_count=len(active_documents),
+        )
+        self.reindex_records.append(record)
+        return record
 
 
 class KnowledgeIngestionPipeline:
@@ -82,7 +181,15 @@ class KnowledgeIngestionPipeline:
 __all__ = [
     "CHUNKING_STRATEGY",
     "INDEX_SCHEMA_VERSION",
+    "InMemoryKnowledgeAdminStore",
     "IndexedKnowledgeChunk",
     "InMemoryKnowledgeIndex",
+    "KnowledgeDocumentRecord",
     "KnowledgeIngestionPipeline",
+    "ReindexRecord",
 ]
+
+
+def _looks_like_customer_transcript(text: str) -> bool:
+    lowered = text.lower()
+    return "customer:" in lowered or "agent:" in lowered or "transcript" in lowered

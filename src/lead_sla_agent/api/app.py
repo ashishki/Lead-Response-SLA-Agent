@@ -8,6 +8,7 @@ from lead_sla_agent.api.health import health_status
 from lead_sla_agent.api.webhooks import InMemoryWebhookStore
 from lead_sla_agent.api.webhooks import router as webhook_router
 from lead_sla_agent.operator.api import router as operator_router
+from lead_sla_agent.operator.knowledge_api import router as knowledge_router
 
 
 def create_app() -> FastAPI:
@@ -21,6 +22,7 @@ def create_app() -> FastAPI:
 
     app.include_router(webhook_router)
     app.include_router(operator_router)
+    app.include_router(knowledge_router)
     return app
 
 

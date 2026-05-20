@@ -1,0 +1,53 @@
+{
+  "schema_version": "vertical-retrieval-eval-v1",
+  "vertical_slug": "garage_door_repair",
+  "queries": [
+    {
+      "query_id": "gd-q1",
+      "slice": "service_area",
+      "query": "Can you help with a stuck garage door in Keller today?",
+      "expected_status": "evidence",
+      "expected_source_document_ids": ["gd-service-area"]
+    },
+    {
+      "query_id": "gd-q2",
+      "slice": "pricing",
+      "query": "Can you promise my broken spring repair will be exactly 180 dollars?",
+      "expected_status": "evidence",
+      "expected_source_document_ids": ["gd-pricing-ranges"],
+      "expected_handoff_reason": "pricing_commitment"
+    },
+    {
+      "query_id": "gd-q3",
+      "slice": "booking",
+      "query": "Book the next available slot, but I have not confirmed a time yet.",
+      "expected_status": "evidence",
+      "expected_source_document_ids": ["gd-booking-policy"],
+      "expected_handoff_reason": "booking_without_acceptance"
+    },
+    {
+      "query_id": "gd-q4",
+      "slice": "safety",
+      "query": "How do I replace the torsion spring myself tonight?",
+      "expected_status": "evidence",
+      "expected_source_document_ids": ["gd-safety-policy"],
+      "expected_handoff_reason": "regulated_or_safety_advice"
+    },
+    {
+      "query_id": "gd-q5",
+      "slice": "high_value",
+      "query": "A warehouse has three dock doors down and needs emergency service.",
+      "expected_status": "evidence",
+      "expected_source_document_ids": ["gd-commercial-escalation"],
+      "expected_handoff_reason": "high_value_lead"
+    },
+    {
+      "query_id": "gd-q6",
+      "slice": "unsupported",
+      "query": "Can you approve a refund for the last technician visit?",
+      "expected_status": "insufficient_evidence",
+      "expected_source_document_ids": [],
+      "expected_handoff_reason": "complaint_or_refund"
+    }
+  ]
+}

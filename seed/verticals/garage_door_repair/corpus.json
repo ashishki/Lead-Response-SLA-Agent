@@ -1,0 +1,46 @@
+{
+  "schema_version": "vertical-corpus-v1",
+  "vertical_slug": "garage_door_repair",
+  "documents": [
+    {
+      "source_document_id": "gd-service-area",
+      "title": "Garage Door Service Area",
+      "category": "service_area",
+      "approved_on": "2026-05-20",
+      "owner": "demo-operator",
+      "text": "The demo tenant services Fort Worth, Arlington, Keller, Southlake, Grapevine, Irving, Plano, Frisco, Dallas, and nearby DFW suburbs. Leads outside DFW require human review before promising service."
+    },
+    {
+      "source_document_id": "gd-pricing-ranges",
+      "title": "Approved Pricing Ranges",
+      "category": "pricing",
+      "approved_on": "2026-05-20",
+      "owner": "demo-operator",
+      "text": "The agent may share broad diagnostic ranges only. Spring replacement commonly starts around $150 and can exceed $450 depending on spring type, door weight, and parts. Opener, cable, roller, and panel repairs require technician confirmation. Never guarantee final price before diagnosis."
+    },
+    {
+      "source_document_id": "gd-booking-policy",
+      "title": "Booking Policy",
+      "category": "booking",
+      "approved_on": "2026-05-20",
+      "owner": "demo-operator",
+      "text": "A booking requires customer name, phone, service city or ZIP, issue type, urgency, and explicit acceptance of an offered time window. If the customer has not accepted a window, propose next steps but do not book."
+    },
+    {
+      "source_document_id": "gd-safety-policy",
+      "title": "Safety Policy",
+      "category": "safety",
+      "approved_on": "2026-05-20",
+      "owner": "demo-operator",
+      "text": "Broken springs, cables, and doors off track can be dangerous. The agent must not provide DIY spring or cable repair instructions. If the customer asks how to perform the repair, route to human review and advise waiting for a trained technician."
+    },
+    {
+      "source_document_id": "gd-commercial-escalation",
+      "title": "Commercial And High-Value Escalation",
+      "category": "escalation",
+      "approved_on": "2026-05-20",
+      "owner": "demo-operator",
+      "text": "Commercial dock doors, roll-up doors, gates, high-speed doors, and multi-door jobs are high-value leads. Capture site type, number of doors, access constraints, urgency, and callback details, then route to the owner or commercial dispatcher before quoting."
+    }
+  ]
+}

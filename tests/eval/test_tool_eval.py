@@ -23,3 +23,11 @@ def test_tool_eval_records_runtime_scenarios() -> None:
     assert "schema validation pass rate=100%" in content
     assert "unsafe-gate pass rate=100%" in content
     assert "provider timeout fallback scenario documented" in content
+    assert "T24" in content
+    assert "provider failure recording rate=100%" in content
+    assert "T25" in content
+    assert "provider timeout fallback rate=100%" in content
+    assert "T26" in content
+    assert "CRM failure audit path rate=100%" in content
+    assert "T33" in content
+    assert "accepted operator feedback tool candidates=1" in content

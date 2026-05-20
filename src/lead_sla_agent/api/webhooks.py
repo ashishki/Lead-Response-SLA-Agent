@@ -15,7 +15,12 @@ from lead_sla_agent.intake.schemas import (
     NormalizedInboundEvent,
     StoredWebhookResult,
 )
-from lead_sla_agent.intake.signatures import SIGNATURE_HEADER, verify_signature
+from lead_sla_agent.intake.signatures import (
+    PROVIDER_HEADER,
+    SIGNATURE_HEADER,
+    verify_provider_signature,
+    verify_signature,
+)
 
 
 class WebhookStore(Protocol):
@@ -100,7 +105,17 @@ async def receive_inbound_webhook(request: Request) -> dict[str, str | bool]:
     raw_body = await request.body()
     settings = get_settings()
     signature = request.headers.get(SIGNATURE_HEADER)
-    if not verify_signature(raw_body, signature, settings.webhook_shared_secret):
+    provider = request.headers.get(PROVIDER_HEADER)
+    if provider:
+        signature_valid = verify_provider_signature(
+            provider,
+            raw_body,
+            request.headers,
+            settings.webhook_shared_secret,
+        )
+    else:
+        signature_valid = verify_signature(raw_body, signature, settings.webhook_shared_secret)
+    if not signature_valid:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="invalid webhook signature",

@@ -13,6 +13,9 @@ EXPECTED_TABLES = {
     "message",
     "audit_event",
     "provider_event",
+    "human_review_task",
+    "human_review_approval",
+    "outcome_label",
 }
 
 

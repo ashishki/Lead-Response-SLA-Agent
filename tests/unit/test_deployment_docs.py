@@ -4,12 +4,21 @@ from pathlib import Path
 
 import yaml
 
-REQUIRED_RUNTIME_ENV = {
+REQUIRED_API_ENV = {
     "APP_ENV",
     "DATABASE_URL",
     "REDIS_URL",
-    "SECRET_KEY",
+    "OPERATOR_AUTH_SECRET",
     "WEBHOOK_SHARED_SECRET",
+}
+REQUIRED_WORKER_ENV = {
+    "APP_ENV",
+    "DATABASE_URL",
+    "REDIS_URL",
+    "EMAIL_API_KEY",
+    "CALENDAR_API_TOKEN",
+    "CRM_API_TOKEN",
+    "EMBEDDING_API_KEY",
 }
 
 
@@ -17,9 +26,8 @@ def test_docker_compose_config_declares_required_services() -> None:
     compose = yaml.safe_load(Path("compose.yml").read_text(encoding="utf-8"))
 
     assert {"api", "worker", "postgres", "redis"} <= set(compose["services"])
-    for service_name in ("api", "worker"):
-        service_env = set(compose["services"][service_name]["environment"])
-        assert service_env >= REQUIRED_RUNTIME_ENV
+    assert set(compose["services"]["api"]["environment"]) >= REQUIRED_API_ENV
+    assert set(compose["services"]["worker"]["environment"]) >= REQUIRED_WORKER_ENV
 
 
 def test_runbook_contains_required_sections() -> None:

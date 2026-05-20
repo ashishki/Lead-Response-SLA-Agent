@@ -7,6 +7,12 @@ from datetime import UTC, datetime
 
 from lead_sla_agent.intake.schemas import InboundWebhookPayload, NormalizedInboundEvent
 
+PROVIDER_CHANNELS = {
+    "email": "email",
+    "telegram": "telegram",
+    "whatsapp": "whatsapp",
+}
+
 
 def normalize_inbound_event(
     payload: InboundWebhookPayload,
@@ -24,3 +30,16 @@ def normalize_inbound_event(
         contact_phone=payload.contact_phone,
         message=payload.message,
     )
+
+
+def normalize_provider_inbound_event(
+    provider: str,
+    payload: InboundWebhookPayload,
+    raw_body: bytes,
+) -> NormalizedInboundEvent:
+    """Normalize a provider-specific webhook while preserving canonical fields."""
+    event = normalize_inbound_event(payload, raw_body)
+    provider_channel = PROVIDER_CHANNELS.get(provider.lower())
+    if provider_channel is None:
+        return event
+    return event.model_copy(update={"channel": provider_channel})

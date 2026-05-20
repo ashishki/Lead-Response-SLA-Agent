@@ -68,6 +68,7 @@ class LeadWorkflow:
         )
 
         send_result = None
+        human_review_count = 0
         termination_reason = state.termination_reason or "responded"
         if state.termination_reason == TerminationReason.UNSUPPORTED_QUESTION.value:
             metrics.increment("insufficient_evidence_total")
@@ -75,7 +76,9 @@ class LeadWorkflow:
                 conversation_id=created.conversation.id,
                 handoff_reason=TerminationReason.UNSUPPORTED_QUESTION.value,
                 payload={"lead_id": str(created.lead.id)},
+                tenant_id=event.tenant_id,
             )
+            human_review_count = 1
         else:
             message = turn.outbound_draft or "We found approved information for your question."
             send_result = await self.messaging.send_message(
@@ -96,7 +99,7 @@ class LeadWorkflow:
             evidence_count=evidence_count,
             outbound_draft=outbound_draft,
             send_result=send_result,
-            human_review_count=len(self.review_store.tasks),
+            human_review_count=human_review_count,
             first_response_latency_ms=latency_ms,
             termination_reason=termination_reason,
         )

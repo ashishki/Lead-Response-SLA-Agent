@@ -1,0 +1,91 @@
+{
+  "documents": [
+    {
+      "tenant_id": "00000000-0000-4000-8000-0000000000a1",
+      "source_document_id": "pilot-pricing",
+      "source_title": "Pilot Pricing Guide",
+      "effective_date": "2026-05-20",
+      "text": "# Pricing\nStandard consultation starts at the published base visit rate. Emergency appointments may include an after-hours surcharge. Membership customers can use the maintenance visit package. Custom discounts require operator approval."
+    },
+    {
+      "tenant_id": "00000000-0000-4000-8000-0000000000a1",
+      "source_document_id": "pilot-service-area",
+      "source_title": "Pilot Service Area",
+      "effective_date": "2026-05-20",
+      "text": "# Service Area\nTenant A serves downtown, northside, west park, river district, and central business district. Tenant A does not serve lakeside or airport neighborhoods."
+    },
+    {
+      "tenant_id": "00000000-0000-4000-8000-0000000000a1",
+      "source_document_id": "pilot-booking",
+      "source_title": "Pilot Booking Rules",
+      "effective_date": "2026-05-20",
+      "text": "# Booking\nSame-day appointments can be offered when the calendar has open slots. Booking requires explicit customer acceptance. The agent may propose a slot but must not book without acceptance."
+    },
+    {
+      "tenant_id": "00000000-0000-4000-8000-0000000000a1",
+      "source_document_id": "pilot-cancellation",
+      "source_title": "Pilot Cancellation Policy",
+      "effective_date": "2026-05-20",
+      "text": "# Cancellation\nCustomers should cancel at least 24 hours before the appointment. Late cancellation exceptions require operator review. Rescheduling follows the same fresh-slot lookup process as booking."
+    },
+    {
+      "tenant_id": "00000000-0000-4000-8000-0000000000b1",
+      "source_document_id": "tenant-b-service-area",
+      "source_title": "Tenant B Service Area",
+      "effective_date": "2026-05-20",
+      "text": "# Service Area\nTenant B serves lakeside, airport, and south harbor neighborhoods only."
+    }
+  ],
+  "queries": [
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "What does a standard consultation start at?", "slice": "pricing", "expected_status": "evidence", "expected_source_document_ids": ["pilot-pricing"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Is there an after-hours surcharge for emergency appointments?", "slice": "pricing", "expected_status": "evidence", "expected_source_document_ids": ["pilot-pricing"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Can the AI promise a custom discount?", "slice": "pricing", "expected_status": "evidence", "expected_source_document_ids": ["pilot-pricing"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "What package can membership customers use?", "slice": "pricing", "expected_status": "evidence", "expected_source_document_ids": ["pilot-pricing"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Do emergency appointments cost more after hours?", "slice": "pricing", "expected_status": "evidence", "expected_source_document_ids": ["pilot-pricing"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Should unusual discount requests go to an operator?", "slice": "pricing", "expected_status": "evidence", "expected_source_document_ids": ["pilot-pricing"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Do you serve downtown?", "slice": "service_area", "expected_status": "evidence", "expected_source_document_ids": ["pilot-service-area"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Is northside in the service area?", "slice": "service_area", "expected_status": "evidence", "expected_source_document_ids": ["pilot-service-area"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Can a west park lead be served?", "slice": "service_area", "expected_status": "evidence", "expected_source_document_ids": ["pilot-service-area"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Do you cover the river district?", "slice": "service_area", "expected_status": "evidence", "expected_source_document_ids": ["pilot-service-area"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Is the central business district covered?", "slice": "service_area", "expected_status": "evidence", "expected_source_document_ids": ["pilot-service-area"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Does Tenant A serve airport neighborhoods?", "slice": "service_area", "expected_status": "evidence", "expected_source_document_ids": ["pilot-service-area"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Can I get a same-day appointment?", "slice": "booking", "expected_status": "evidence", "expected_source_document_ids": ["pilot-booking"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "What has to be true before offering same-day booking?", "slice": "booking", "expected_status": "evidence", "expected_source_document_ids": ["pilot-booking"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Can the system book without customer acceptance?", "slice": "booking", "expected_status": "evidence", "expected_source_document_ids": ["pilot-booking"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "May the agent propose a slot before acceptance?", "slice": "booking", "expected_status": "evidence", "expected_source_document_ids": ["pilot-booking"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "What is required to book an appointment?", "slice": "booking", "expected_status": "evidence", "expected_source_document_ids": ["pilot-booking"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "What if the calendar has no open slots?", "slice": "booking", "expected_status": "evidence", "expected_source_document_ids": ["pilot-booking"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "How much notice is needed to cancel?", "slice": "cancellation", "expected_status": "evidence", "expected_source_document_ids": ["pilot-cancellation"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "What happens with late cancellation exceptions?", "slice": "cancellation", "expected_status": "evidence", "expected_source_document_ids": ["pilot-cancellation"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Does rescheduling need a fresh slot lookup?", "slice": "cancellation", "expected_status": "evidence", "expected_source_document_ids": ["pilot-cancellation"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Can cancellation be done inside 24 hours automatically?", "slice": "cancellation", "expected_status": "evidence", "expected_source_document_ids": ["pilot-cancellation"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Where is the cancellation policy documented?", "slice": "cancellation", "expected_status": "evidence", "expected_source_document_ids": ["pilot-cancellation"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "maintenance visit package", "slice": "exact_terms", "expected_status": "evidence", "expected_source_document_ids": ["pilot-pricing"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "central business district", "slice": "exact_terms", "expected_status": "evidence", "expected_source_document_ids": ["pilot-service-area"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "fresh-slot lookup process", "slice": "exact_terms", "expected_status": "evidence", "expected_source_document_ids": ["pilot-cancellation"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "explicit customer acceptance", "slice": "exact_terms", "expected_status": "evidence", "expected_source_document_ids": ["pilot-booking"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "after-hours surcharge", "slice": "exact_terms", "expected_status": "evidence", "expected_source_document_ids": ["pilot-pricing"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "late cancellation exceptions", "slice": "exact_terms", "expected_status": "evidence", "expected_source_document_ids": ["pilot-cancellation"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Can you diagnose a medical condition?", "slice": "unsupported", "expected_status": "insufficient_evidence", "expected_source_document_ids": []},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Can you provide legal advice?", "slice": "unsupported", "expected_status": "insufficient_evidence", "expected_source_document_ids": []},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Can you approve a refund outside policy?", "slice": "unsupported", "expected_status": "insufficient_evidence", "expected_source_document_ids": []},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Can you guarantee a custom contract term?", "slice": "unsupported", "expected_status": "insufficient_evidence", "expected_source_document_ids": []},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "What is the owner's private mobile number?", "slice": "unsupported", "expected_status": "insufficient_evidence", "expected_source_document_ids": []},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Do you handle insurance claim disputes?", "slice": "unsupported", "expected_status": "insufficient_evidence", "expected_source_document_ids": []},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Can you use last year's expired holiday discount?", "slice": "stale", "expected_status": "insufficient_evidence", "expected_source_document_ids": []},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Is the old airport expansion zone active?", "slice": "stale", "expected_status": "insufficient_evidence", "expected_source_document_ids": []},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Can I book from a retired winter schedule?", "slice": "stale", "expected_status": "insufficient_evidence", "expected_source_document_ids": []},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "What was the outdated cancellation waiver?", "slice": "stale", "expected_status": "insufficient_evidence", "expected_source_document_ids": []},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "lakeside airport south harbor", "slice": "tenant_isolation", "expected_status": "insufficient_evidence", "expected_source_document_ids": []},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Does Tenant B serve south harbor?", "slice": "tenant_isolation", "expected_status": "insufficient_evidence", "expected_source_document_ids": []},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Can Tenant A use Tenant B airport coverage?", "slice": "tenant_isolation", "expected_status": "insufficient_evidence", "expected_source_document_ids": []},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Is lakeside available for this tenant?", "slice": "tenant_isolation", "expected_status": "insufficient_evidence", "expected_source_document_ids": []},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000b1", "query": "Does Tenant B serve airport?", "slice": "tenant_isolation", "expected_status": "evidence", "expected_source_document_ids": ["tenant-b-service-area"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000b1", "query": "Does Tenant B serve downtown?", "slice": "tenant_isolation", "expected_status": "evidence", "expected_source_document_ids": ["tenant-b-service-area"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Can an operator approve a late cancellation exception?", "slice": "cancellation", "expected_status": "evidence", "expected_source_document_ids": ["pilot-cancellation"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Can the agent offer same-day slots when the calendar is open?", "slice": "booking", "expected_status": "evidence", "expected_source_document_ids": ["pilot-booking"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Which neighborhoods are excluded for Tenant A?", "slice": "service_area", "expected_status": "evidence", "expected_source_document_ids": ["pilot-service-area"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Is a standard visit package mentioned?", "slice": "pricing", "expected_status": "evidence", "expected_source_document_ids": ["pilot-pricing"]},
+    {"tenant_id": "00000000-0000-4000-8000-0000000000a1", "query": "Can rescheduling reuse booking rules?", "slice": "cancellation", "expected_status": "evidence", "expected_source_document_ids": ["pilot-cancellation"]}
+  ]
+}

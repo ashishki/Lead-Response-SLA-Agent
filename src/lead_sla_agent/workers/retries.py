@@ -6,6 +6,8 @@ import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
+from redis.asyncio import Redis
+
 CreateReviewTask = Callable[[uuid.UUID, str], Awaitable[None]]
 
 
@@ -33,3 +35,58 @@ async def record_send_failure(
     await create_review_task(retry_state.lead_id, reason)
     retry_state.human_review_created = True
     return True
+
+
+async def record_send_failure_redis(
+    client: Redis,
+    tenant_id: uuid.UUID,
+    lead_id: uuid.UUID,
+    failure_event_id: str,
+    create_review_task: CreateReviewTask,
+    max_attempts: int = 3,
+    reason: str = "outbound_send_retry_exhausted",
+) -> bool:
+    """Record one Redis-backed send failure and create one review after exhaustion."""
+    processed = await client.set(
+        _retry_event_key(tenant_id, lead_id, failure_event_id),
+        "1",
+        nx=True,
+    )
+    if not processed:
+        return False
+
+    state_key = _retry_state_key(tenant_id, lead_id)
+    attempts = await client.hincrby(state_key, "attempts", 1)
+    await client.hset(state_key, "max_attempts", max_attempts)
+    if attempts < max_attempts:
+        return False
+
+    review_created = await client.set(_retry_review_key(tenant_id, lead_id), "1", nx=True)
+    if not review_created:
+        return False
+
+    await create_review_task(lead_id, reason)
+    await client.hset(state_key, mapping={"human_review_created": "1", "reason": reason})
+    return True
+
+
+async def get_retry_attempts(client: Redis, tenant_id: uuid.UUID, lead_id: uuid.UUID) -> int:
+    """Return the Redis-backed retry attempt count for tests and workers."""
+    value = await client.hget(_retry_state_key(tenant_id, lead_id), "attempts")
+    if value is None:
+        return 0
+    if isinstance(value, bytes):
+        value = value.decode("utf-8")
+    return int(value)
+
+
+def _retry_state_key(tenant_id: uuid.UUID, lead_id: uuid.UUID) -> str:
+    return "retry:state:" + str(tenant_id) + ":" + str(lead_id)
+
+
+def _retry_event_key(tenant_id: uuid.UUID, lead_id: uuid.UUID, failure_event_id: str) -> str:
+    return "retry:event:" + str(tenant_id) + ":" + str(lead_id) + ":" + failure_event_id
+
+
+def _retry_review_key(tenant_id: uuid.UUID, lead_id: uuid.UUID) -> str:
+    return "retry:review:" + str(tenant_id) + ":" + str(lead_id)

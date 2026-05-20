@@ -4,8 +4,20 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from lead_sla_agent.conversation.model_io import qualifying_question_for
-from lead_sla_agent.conversation.policy import AllowedAction, TerminationReason
+from lead_sla_agent.conversation.model_io import (
+    ACKNOWLEDGEMENT_PROMPT_VERSION,
+    QUALIFICATION_PROMPT_VERSION,
+    model_output_record,
+    qualifying_question_for,
+)
+from lead_sla_agent.conversation.policy import (
+    POLICY_VERSION,
+    AllowedAction,
+    PolicyDecision,
+    TerminationReason,
+    can_draft_customer_reply,
+    policy_decision_for_retrieval_status,
+)
 from lead_sla_agent.conversation.state import (
     DEFAULT_MAX_AUTONOMOUS_TURNS,
     ConversationInput,
@@ -44,11 +56,21 @@ class ConversationRuntime:
         missing_fields = sorted(state.required_fields - set(state.collected_fields))
         if missing_fields:
             question = qualifying_question_for(missing_fields[0])
+            output_record = model_output_record(
+                output_text=question,
+                prompt_version=QUALIFICATION_PROMPT_VERSION,
+                policy_decision=PolicyDecision.ASK_FOR_QUALIFICATION.value,
+            )
             state.audit_events.append(
                 {
                     "event_type": "outbound_draft",
                     "action": AllowedAction.ASK_QUALIFYING_QUESTION.value,
                     "redacted_preview": "[redacted]",
+                    "model_name": output_record.model_name,
+                    "prompt_version": output_record.prompt_version,
+                    "schema_version": output_record.schema_version,
+                    "policy_version": POLICY_VERSION,
+                    "policy_decision": output_record.policy_decision,
                 }
             )
             return ConversationTurnResult(
@@ -59,11 +81,14 @@ class ConversationRuntime:
 
         if inbound.asks_policy_question and self.retrieval is not None:
             retrieval_result = await self.retrieval.retrieve(state.tenant_id, inbound.message_text)
-            if retrieval_result.status == "insufficient_evidence":
+            policy_decision = policy_decision_for_retrieval_status(retrieval_result.status)
+            if not can_draft_customer_reply(retrieval_result.status):
                 state.audit_events.append(
                     {
                         "event_type": "human_review_task",
                         "reason": TerminationReason.UNSUPPORTED_QUESTION.value,
+                        "policy_version": POLICY_VERSION,
+                        "policy_decision": policy_decision.value,
                     }
                 )
                 return self._terminate(state, TerminationReason.UNSUPPORTED_QUESTION)
@@ -82,9 +107,26 @@ class ConversationRuntime:
                 termination_reason=None,
             )
 
+        output_record = model_output_record(
+            output_text="Thanks, we received your request.",
+            prompt_version=ACKNOWLEDGEMENT_PROMPT_VERSION,
+            policy_decision=PolicyDecision.ACKNOWLEDGE_ALLOWED.value,
+        )
+        state.audit_events.append(
+            {
+                "event_type": "outbound_draft",
+                "action": AllowedAction.ACKNOWLEDGE.value,
+                "redacted_preview": "[redacted]",
+                "model_name": output_record.model_name,
+                "prompt_version": output_record.prompt_version,
+                "schema_version": output_record.schema_version,
+                "policy_version": POLICY_VERSION,
+                "policy_decision": output_record.policy_decision,
+            }
+        )
         return ConversationTurnResult(
             action=AllowedAction.ACKNOWLEDGE,
-            outbound_draft="Thanks, we received your request.",
+            outbound_draft=output_record.output_text,
             termination_reason=None,
         )
 
