@@ -56,6 +56,13 @@ def test_provider_credentials_are_scoped_per_adapter() -> None:
     assert PROVIDER_SECRET_NAMES_BY_ADAPTER["email"] == frozenset(
         {"EMAIL_API_KEY", "EMAIL_SENDER", "EMAIL_API_URL"}
     )
+    assert PROVIDER_SECRET_NAMES_BY_ADAPTER["postmark_email"] == frozenset(
+        {"POSTMARK_SERVER_TOKEN", "POSTMARK_SENDER", "POSTMARK_MESSAGE_STREAM"}
+    )
+    assert PROVIDER_SECRET_NAMES_BY_ADAPTER["twilio_whatsapp"] == frozenset(
+        {"TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_WHATSAPP_FROM"}
+    )
+    assert PROVIDER_SECRET_NAMES_BY_ADAPTER["telegram_bot"] == frozenset({"TELEGRAM_BOT_TOKEN"})
     assert PROVIDER_SECRET_NAMES_BY_ADAPTER["calendar"] == frozenset(
         {"CALENDAR_API_TOKEN", "CALENDAR_API_URL"}
     )

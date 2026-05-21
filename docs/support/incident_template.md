@@ -4,7 +4,9 @@ Incident ID:
 Severity:
 Tenant hash:
 Started at:
+Detected at:
 Detected by:
+Mitigated at:
 Owner:
 Status:
 Next update:
@@ -42,6 +44,16 @@ One or two sentences describing customer-visible impact without raw PII.
 - First update sent:
 - Latest update sent:
 - Next update due:
+- Template used:
+
+## Drill Record
+
+- Detection time:
+- Mitigation time:
+- Customer impact:
+- Root cause:
+- Prevention owner:
+- Customer update template:
 
 ## Prevention Tasks
 

@@ -52,6 +52,17 @@ class ConversationRuntime:
         if state.turn_count >= self.max_autonomous_turns:
             return self._terminate(state, TerminationReason.BUDGET_EXCEEDED)
 
+        if _looks_like_prompt_injection(inbound.message_text):
+            state.audit_events.append(
+                {
+                    "event_type": "human_review_task",
+                    "reason": "prompt_injection_attempt",
+                    "policy_version": POLICY_VERSION,
+                    "policy_decision": PolicyDecision.HUMAN_REVIEW_REQUIRED.value,
+                }
+            )
+            return self._terminate(state, TerminationReason.HUMAN_REVIEW_REQUIRED)
+
         state.turn_count += 1
         missing_fields = sorted(state.required_fields - set(state.collected_fields))
         if missing_fields:
@@ -143,3 +154,17 @@ class ConversationRuntime:
             outbound_draft=None,
             termination_reason=reason,
         )
+
+
+def _looks_like_prompt_injection(message_text: str) -> bool:
+    normalized = " ".join(message_text.lower().split())
+    prompt_injection_markers = (
+        "ignore previous instructions",
+        "ignore all previous instructions",
+        "reveal the system prompt",
+        "show the system prompt",
+        "developer message",
+        "bypass policy",
+        "jailbreak",
+    )
+    return any(marker in normalized for marker in prompt_injection_markers)

@@ -9,10 +9,15 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
+from lead_sla_agent.api.rate_limit import enforce_operator_rate_limit
 from lead_sla_agent.operator.auth import OperatorPrincipal, require_operator
 from lead_sla_agent.retrieval.ingestion import InMemoryKnowledgeAdminStore
 
-router = APIRouter(prefix="/operator/knowledge", tags=["operator-knowledge"])
+router = APIRouter(
+    prefix="/operator/knowledge",
+    tags=["operator-knowledge"],
+    dependencies=[Depends(enforce_operator_rate_limit)],
+)
 
 
 class KnowledgeUploadRequest(BaseModel):

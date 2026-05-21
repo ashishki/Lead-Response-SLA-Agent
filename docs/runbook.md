@@ -43,6 +43,23 @@ ssh "$PRODUCTION_VPS_USER@$PRODUCTION_VPS_HOST" "cd /srv/lead-sla-agent && git c
 
 Configure the inbound provider webhook URL as `/webhooks/inbound`. Set `WEBHOOK_SHARED_SECRET` in secret storage and configure the provider to sign request bodies with the matching HMAC SHA-256 signature.
 
+Public webhook setup for VPS:
+
+1. Terminate TLS at the VPS reverse proxy and route `https://<host>/webhooks/inbound` to the API container on `http://api:8000/webhooks/inbound`.
+2. Preserve provider signature headers when proxying requests.
+3. Reject requests at the API before persistence when signatures are invalid.
+4. Store provider event IDs, payload hashes, transcript hashes, and review task references. Do not store raw provider payloads in audit or observability paths.
+
+Provider-specific setup:
+
+| Provider | Header/secret path | Staging requirement | Production requirement |
+|----------|--------------------|---------------------|------------------------|
+| Postmark inbound webhook | `X-Lead-SLA-Provider: postmark_email` plus `X-Lead-SLA-Signature` | Use Postmark sandbox or staging stream, signed with staging `WEBHOOK_SHARED_SECRET`. | Use production Postmark server/stream, signed with production `WEBHOOK_SHARED_SECRET`. |
+| Twilio WhatsApp webhook | `X-Lead-SLA-Provider: twilio_whatsapp` plus `X-Hub-Signature-256` | Use Twilio WhatsApp sandbox and test opt-in source metadata. | Use approved WhatsApp sender, record opt-in source before outbound follow-up. |
+| Telegram Bot API webhook | `X-Lead-SLA-Provider: telegram_bot` plus `X-Telegram-Bot-Api-Secret-Token` | Set a staging bot webhook with a staging secret token. Do not paste bot tokens into logs or support tickets. | Set the production bot webhook with a production secret token. Do not paste bot tokens, webhook secret values, or raw update payloads into logs. |
+
+Telegram setup stores only the bot token in environment-scoped secret storage. The webhook secret token is verified by the API and must not be logged. WhatsApp setup must record opt-in source and timestamp so outbound replies can prove consent.
+
 ## Seed Knowledge Ingestion
 
 Load tenant-approved text FAQ, pricing, service-area, booking, cancellation, and escalation documents through the ingestion pipeline. Keep source documents canonical so the vector/index rows can be rebuilt when the embedding model or index schema changes.
@@ -69,6 +86,84 @@ The checklist must fit within one working day and cover:
 - test lead validation
 
 Launch gate: do not enable production traffic until provider sandbox passes, the 10-question knowledge validation passes, and an operator approves/edits/sends a test review task.
+
+## Live Messaging Providers
+
+The pilot outbound provider matrix is:
+
+| Channel | Provider | Why this provider is first | Live-send precondition |
+|---------|----------|----------------------------|------------------------|
+| email | Postmark transactional email | focused transactional delivery, message streams, simple API, clear delivery metadata | verified sender/domain, `POSTMARK_SERVER_TOKEN`, `POSTMARK_SENDER`, `POSTMARK_MESSAGE_STREAM`, operator approval |
+| WhatsApp | Twilio WhatsApp | faster MVP onboarding than direct Meta Cloud API, sandbox support, delivery callbacks, provider error codes | explicit customer opt-in, approved WhatsApp sender, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM`, operator approval |
+| Telegram | Telegram Bot API | direct API, no paid intermediary, simple bot send path | user initiated chat with the bot, stored chat ID, `TELEGRAM_BOT_TOKEN`, operator approval |
+
+Normal tests must not require live credentials. Tests use fake HTTP transports and test-only default settings. Production and staging credentials live only in environment-scoped secret storage.
+
+Pilot outbound rule: every email, WhatsApp, and Telegram message is queued for human approval before live send. A provider send result must record provider name, channel, provider message ID, delivery status, latency, failure reason, rate-limit flag, and idempotency key.
+
+WhatsApp cannot be used for cold outreach. Record opt-in source and timestamp before any WhatsApp send. Telegram cannot be used for cold outreach either; the lead must start the bot conversation or otherwise provide a known bot chat ID.
+
+## Metrics And Alert Routing
+
+Primary pilot metrics backend: Grafana Cloud with Prometheus-compatible `/metrics` export.
+
+Staging and production API containers expose Prometheus text metrics at `/metrics`. Grafana Alloy or a Prometheus agent runs on the VPS, scrapes `/metrics` every 30 seconds, and remote-writes metrics to the matching Grafana Cloud environment. Keep staging and production routes separate.
+
+Fallback mode: Prometheus + Alertmanager + Grafana can run in Docker Compose on the VPS for local-only operation. This is useful for debugging and cost control, but it is not enough by itself because a total VPS outage also takes down same-host alerting. Always pair the fallback with an external uptime check.
+
+Pilot alert receiver:
+
+| Receiver | Route | Purpose |
+|----------|-------|---------|
+| `pilot_operator` | Grafana Cloud alerting notification policy | Page the operator for SLA, provider, queue, API error, and unsafe automation alerts. |
+
+Actionable alert rules:
+
+| Alert | Threshold | Owner | Severity | Customer impact | First response expectation |
+|-------|-----------|-------|----------|-----------------|----------------------------|
+| `first_response_latency_p95_high` | p95 `first_response_latency_ms` > 30000 ms for 10m | pilot_operator | page | leads are waiting too long for first response | acknowledge within 10 minutes |
+| `provider_send_failure_rate_high` | provider send failure rate > 2 percent for 10m | pilot_operator | page | approved replies may not reach customers | inspect provider dashboard within 10 minutes |
+| `queue_depth_high` | `queue_depth` > 100 jobs or growing for 15m | pilot_operator | page | lead processing may be delayed | inspect worker and Redis within 10 minutes |
+| `api_error_rate_high` | `api_error_total` > 1 percent for 10m | pilot_operator | page | webhooks or operator actions may fail | inspect API logs and health within 10 minutes |
+| `unsafe_automation_blocks_spike` | unexpected spike in `unsafe_automation_block_total` for 10m | pilot_operator | ticket | more replies require manual review before sending | review policy and recent prompts within 1 business day |
+| `sla_breach_detected` | `sla_breach_total` sustained above baseline for 15m | pilot_operator | page | buyer may lose leads due to slow response | triage queue and provider status within 10 minutes |
+
+Alert labels must be PII-free. Allowed labels include tenant hashes, channel names, provider names, failure reason enums, queue names, component names, status classes, and tool names. Do not use lead IDs, customer names, emails, phone numbers, addresses, provider message IDs, provider user IDs, message text, webhook payloads, tokens, or secrets as labels.
+
+Dry run:
+
+```bash
+python - <<'PY'
+from lead_sla_agent.observability.metrics import alert_dry_run
+print(alert_dry_run("provider_send_failure_rate_high"))
+PY
+```
+
+## Structured Logs And Correlation IDs
+
+Every production log event should be emitted through `lead_sla_agent.observability.logging.log_structured_event` or a logger with `PIIRedactingFilter`.
+
+Required structured fields:
+
+| Field | Purpose | PII rule |
+|-------|---------|----------|
+| `correlation_id` | Connect one inbound webhook, agent turn, provider call, review action, and worker retry. | Generated value only; do not use lead IDs or provider IDs. |
+| `tenant_hash` | Identify tenant scope without exposing tenant/customer data. | Hash or stable opaque tenant ref only. |
+| `component` | API, worker, provider, retrieval, review, database, or agent. | Enum-like value only. |
+| `action` | Operation name, such as `webhook.accept` or `provider.send`. | No customer text. |
+| `result` | Outcome, such as `ok`, `failed`, `queued`, or `rate_limited`. | Enum-like value only. |
+| `latency_ms` | Duration when applicable. | Numeric only. |
+| `trace_id` | Optional trace context for cross-service lookup. | Opaque trace ID only. |
+
+Do not log raw emails, phone numbers, addresses, customer names, message bodies, webhook payloads, provider message IDs, provider user IDs, bearer tokens, API keys, bot tokens, or webhook signing secrets. Known PII fields are redacted or hashed before emission.
+
+Incident debugging by correlation ID:
+
+1. Start with the alert timestamp and affected environment.
+2. Find the first log event with the relevant `correlation_id`.
+3. Follow the same `correlation_id` across API intake, retrieval/agent decision, provider call, review action, and worker retry logs.
+4. Use `trace_id` when present to inspect spans; span attributes must follow the same PII rules as logs.
+5. If customer support needs a user-facing explanation, use tenant-visible operational status only and never paste raw log payloads.
 
 ## Operator Review
 
@@ -295,6 +390,9 @@ Provider adapter scopes:
 | Adapter | Worker-only secret names |
 |---------|--------------------------|
 | email | `EMAIL_API_KEY`, `EMAIL_SENDER`, `EMAIL_API_URL` |
+| postmark_email | `POSTMARK_SERVER_TOKEN`, `POSTMARK_SENDER`, `POSTMARK_MESSAGE_STREAM` |
+| twilio_whatsapp | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM` |
+| telegram_bot | `TELEGRAM_BOT_TOKEN` |
 | calendar | `CALENDAR_API_TOKEN`, `CALENDAR_API_URL` |
 | crm | `CRM_API_TOKEN`, `CRM_API_URL` |
 | embedding | `EMBEDDING_API_KEY`, `EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS`, `EMBEDDING_API_URL` |

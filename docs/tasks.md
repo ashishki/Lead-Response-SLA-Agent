@@ -1183,18 +1183,22 @@ Type: provider messaging safety
 Depends-On: T24, T55
 
 Objective: |
-  Configure the first live messaging provider for one pilot tenant with human approval enforced before every outbound message.
+  Configure the first live messaging provider path for one pilot tenant with human approval enforced before every outbound message.
+  The pilot messaging matrix is email via Postmark, WhatsApp via Twilio WhatsApp, and Telegram via the Telegram Bot API.
+  T57 implements the common outbound provider contract and first controlled live-send path without requiring real credentials in normal tests.
 
 Acceptance-Criteria:
-  - AC-1: Live provider credentials are environment-scoped and never required for normal tests.
-  - AC-2: Provider send path records provider message ID, latency, delivery status, and failure reason.
-  - AC-3: Pilot tenant defaults to human approval for all outbound messages.
+  - AC-1: Live provider credentials are environment-scoped and never required for normal tests; provider choices are documented as Postmark email, Twilio WhatsApp, and Telegram Bot API.
+  - AC-2: Provider send path records provider name, channel, provider message ID, latency, delivery status, failure reason, idempotency key, and rate-limit flag.
+  - AC-3: Pilot tenant defaults to human approval for all outbound messages across email, WhatsApp, and Telegram.
   - AC-4: Provider failure creates retry or human-review fallback without duplicate sends.
   - AC-5: Provider rate-limit response is handled and visible in operator/reliability metrics.
+  - AC-6: WhatsApp outbound requires explicit opt-in metadata before live send; Telegram outbound requires a known chat ID initiated by the user.
 
 Files:
   - `src/lead_sla_agent/tools/messaging.py`
   - `src/lead_sla_agent/workers/retries.py`
+  - `src/lead_sla_agent/config.py`
   - `docs/runbook.md`
   - `tests/integration/test_live_messaging_contract.py`
 
@@ -1202,6 +1206,7 @@ Evidence:
   - Fake-provider contract tests.
   - Sandbox/live credential checklist.
   - Human-approval gate test.
+  - Multi-channel adapter contract tests.
 
 Market-Gate:
   - First pilot can send real replies safely with operator approval.
@@ -1214,13 +1219,15 @@ Type: provider webhook security
 Depends-On: T57
 
 Objective: |
-  Prove inbound provider webhooks work end to end through public URL, signature verification, idempotent intake, transcript persistence, and operator review creation.
+  Prove inbound provider webhooks work end to end through public URL, signature verification, idempotent intake, transcript persistence, and operator review creation for email, WhatsApp, and Telegram.
 
 Acceptance-Criteria:
-  - AC-1: Webhook route rejects invalid signatures before persistence.
-  - AC-2: Replayed provider event IDs are idempotent.
-  - AC-3: Public webhook setup is documented for staging and production.
+  - AC-1: Webhook route rejects invalid signatures before persistence for provider-signed channels.
+  - AC-2: Replayed provider event IDs are idempotent across Postmark inbound, Twilio WhatsApp, and Telegram updates.
+  - AC-3: Public webhook setup is documented for staging and production, including VPS reverse proxy paths.
   - AC-4: Webhook drill creates a lead, transcript entry, and review task without storing raw payload PII.
+  - AC-5: Telegram webhook setup records bot token handling without logging token values.
+  - AC-6: WhatsApp webhook setup records opt-in/source metadata required for later outbound replies.
 
 Files:
   - `src/lead_sla_agent/api/webhooks.py`
@@ -1243,17 +1250,19 @@ Type: provider booking crm
 Depends-On: T25, T26, T55
 
 Objective: |
-  Add reconciliation for calendar bookings and CRM writes so operators can detect missing, duplicated, or failed external records.
+  Add reconciliation for calendar bookings, CRM writes, and outbound messaging provider records so operators can detect missing, duplicated, or failed external records.
 
 Acceptance-Criteria:
   - AC-1: Calendar booking records can be reconciled by provider booking ID and tenant.
   - AC-2: CRM lead records can be reconciled by provider record ID and source event ID.
-  - AC-3: Reconciliation reports missing, duplicate, and stale records without exposing PII in logs.
-  - AC-4: Operator-visible retry/handoff path exists for unresolved discrepancies.
+  - AC-3: Email, WhatsApp, and Telegram send records can be reconciled by provider message ID, channel, tenant, and idempotency key.
+  - AC-4: Reconciliation reports missing, duplicate, failed, rate-limited, and stale records without exposing PII in logs.
+  - AC-5: Operator-visible retry/handoff path exists for unresolved discrepancies.
 
 Files:
   - `src/lead_sla_agent/tools/calendar.py`
   - `src/lead_sla_agent/tools/crm.py`
+  - `src/lead_sla_agent/tools/messaging.py`
   - `src/lead_sla_agent/operator/provider_reconciliation.py`
   - `tests/integration/test_provider_reconciliation.py`
 
@@ -1279,15 +1288,19 @@ Depends-On: T40, T53
 
 Objective: |
   Connect the existing metric contract to the chosen metrics backend and define actionable alerts for SLA breaches, provider failures, queue depth, error rate, and unsafe automation blocks.
+  Primary backend for the VPS pilot is Grafana Cloud using a Prometheus-compatible `/metrics` export.
+  Fallback/self-hosted mode is Prometheus + Alertmanager + Grafana in Docker Compose on the VPS, plus an external uptime check because same-host alerting cannot detect total VPS failure.
 
 Acceptance-Criteria:
-  - AC-1: Metrics export path is configured for staging and production.
+  - AC-1: Metrics export path is configured for staging and production as Prometheus text at `/metrics`, scraped by Grafana Alloy/Prometheus agent and sent to Grafana Cloud.
   - AC-2: Alert rules include threshold, owner, severity, customer impact, and first response expectation.
   - AC-3: Alerts use PII-free labels only.
-  - AC-4: Alert test or dry run proves routing works.
+  - AC-4: Alert test or dry run proves routing works to the pilot operator route.
+  - AC-5: Fallback self-hosted Prometheus + Alertmanager route is documented for VPS-only operation, with the limitation that external uptime monitoring is still required.
 
 Files:
   - `src/lead_sla_agent/observability/metrics.py`
+  - `src/lead_sla_agent/api/app.py`
   - `docs/nfr.md`
   - `docs/runbook.md`
   - `tests/unit/test_alert_contract.py`

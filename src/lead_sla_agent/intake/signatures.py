@@ -30,7 +30,8 @@ def verify_signature(raw_body: bytes, signature: str | None, shared_secret: str)
 
 def build_provider_signature(provider: str, raw_body: bytes, shared_secret: str) -> str:
     """Build a provider-specific test signature."""
-    if provider == "telegram":
+    normalized_provider = provider.lower()
+    if normalized_provider in {"telegram", "telegram_bot"}:
         return shared_secret
     return build_signature(raw_body, shared_secret)
 
@@ -43,11 +44,11 @@ def verify_provider_signature(
 ) -> bool:
     """Verify the configured signature scheme for a named inbound provider."""
     normalized_provider = provider.lower()
-    if normalized_provider == "email":
+    if normalized_provider in {"email", "postmark", "postmark_email"}:
         return verify_signature(raw_body, headers.get(SIGNATURE_HEADER), shared_secret)
-    if normalized_provider == "whatsapp":
+    if normalized_provider in {"whatsapp", "twilio_whatsapp"}:
         return verify_signature(raw_body, headers.get(WHATSAPP_SIGNATURE_HEADER), shared_secret)
-    if normalized_provider == "telegram":
+    if normalized_provider in {"telegram", "telegram_bot"}:
         token = headers.get(TELEGRAM_SECRET_HEADER)
         return token is not None and hmac.compare_digest(token, shared_secret)
     return False

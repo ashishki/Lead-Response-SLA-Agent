@@ -1,7 +1,7 @@
 # Non-Functional Requirements - Lead Response SLA Agent
 
 Version: 1.0
-Last updated: 2026-05-20
+Last updated: 2026-05-21
 Status: Draft
 
 ---
@@ -27,6 +27,7 @@ Status: Draft
 | 2026-05-19 | Bootstrap | not yet measured | pending | Targets initialized before implementation. |
 | 2026-05-19 | T17 | first-response p95 target below 30s; deterministic acknowledgement p95 below 2s; retrieval p95 below 2s; provider send failure rate below 2 percent | initialized | Pilot NFR targets recorded; local fake-provider metrics are test baselines, not scaled production commitments. |
 | 2026-05-20 | T36 | first-response latency p50/p95, automation success rate, human-review rate, booked labels, provider send failures | pass | Operator analytics API returns tenant-scoped weekly metrics and a markdown weekly report export; sample fixture p50=3000 ms and p95=10000 ms. |
+| 2026-05-21 | T60 | Prometheus-compatible `/metrics`, Grafana Cloud alert route, VPS Prometheus + Alertmanager fallback | pass | Alert contract defines owner, severity, customer impact, first response expectation, and PII-free labels for pilot operator routing. |
 
 ---
 
@@ -67,17 +68,54 @@ Provider send failures: 1
 
 Metric names and labels are part of the production contract. Labels must never include lead IDs, customer names, emails, phone numbers, message text, provider message IDs, provider user IDs, or transcript text.
 
+Primary metrics backend for the VPS pilot is Grafana Cloud using a Prometheus-compatible `/metrics` export. Grafana Alloy or a Prometheus agent runs on each VPS, scrapes the API container every 30 seconds, and remote-writes staging and production metrics to separate Grafana Cloud stacks or folders. The fallback self-hosted mode is Prometheus + Alertmanager + Grafana in Docker Compose on the VPS, but it must be paired with an external uptime check because same-host alerting cannot detect a total VPS outage.
+
 | Metric | Type | PII-free labels | Alert threshold |
 |--------|------|-----------------|-----------------|
 | `first_response_latency_ms` | histogram | `tenant_hash`, `channel` | p95 greater than 30000 ms for 10 minutes |
 | `retrieval_latency_ms` | histogram | `tenant_hash`, `corpus_version` | p95 greater than 3000 ms for 10 minutes |
 | `retrieval_freshness_age_hours` | histogram | `tenant_hash`, `corpus_version` | greater than 24 hours |
 | `provider_send_failure_total` | counter | `provider`, `failure_reason` | greater than 2 percent of sends for 10 minutes |
+| `api_error_total` | counter | `component`, `status_class` | greater than 1 percent of API requests for 10 minutes |
 | `sla_breach_total` | counter | `tenant_hash`, `channel` | any sustained increase above pilot baseline for 15 minutes |
 | `insufficient_evidence_total` | counter | `tenant_hash`, `reason` | greater than 20 percent of inbound leads for 30 minutes |
 | `tool_call_failure_total` | counter | `tool_name`, `failure_reason` | greater than 5 percent of tool calls for 10 minutes |
+| `unsafe_automation_block_total` | counter | `tenant_hash`, `reason` | unexpected spike above pilot baseline for 10 minutes |
 | `queue_depth` | gauge | `queue_name` | greater than 100 pending jobs or growing for 15 minutes |
 | `health_dependency_status` | gauge | `dependency` | any required dependency unhealthy for 5 minutes |
+
+Alert rules must include threshold, owner, severity, customer impact, and first response expectation. The first pilot receiver is `pilot_operator`; page-level alerts target first response within 10 minutes, and ticket-level alerts target one business day unless customer impact escalates.
+
+## Production SLOs And Dashboard
+
+Pilot SLOs are operational targets for the first controlled tenants. They are not contractual uptime promises until included in signed customer terms.
+
+| SLO | Objective | Metric names | Alert rule | Dashboard panel |
+|-----|-----------|--------------|------------|-----------------|
+| First response latency | 95 percent of AI-assisted first responses below 30 seconds during business hours | `first_response_latency_ms`, `sla_breach_total` | `first_response_latency_p95_high`, `sla_breach_detected` | First response p50/p95 by tenant hash and channel |
+| Provider send success | At least 98 percent of approved outbound sends accepted by provider over 10 minutes | `provider_send_failure_total` | `provider_send_failure_rate_high` | Provider failures by provider and failure reason |
+| Webhook intake success | Valid signed webhooks accepted without replay or signature regression | `api_error_total`, `health_dependency_status` | `api_error_rate_high` | Webhook accepted/rejected rate and dependency health |
+| Review queue age | Human-review queue remains under SLA and does not grow without owner action | `queue_depth` | `queue_depth_high` | Queue depth and oldest review age by queue name |
+| Unsafe autonomous-send count | Unsafe autonomous sends remain zero; policy blocks are visible and reviewed | `unsafe_automation_block_total`, `tool_call_failure_total` | `unsafe_automation_blocks_spike` | Unsafe blocks and tool-call failures by reason |
+
+Dashboard specification:
+
+| Panel | Query source | Primary viewer | Action |
+|-------|--------------|----------------|--------|
+| First response p50/p95 | `first_response_latency_ms` | pilot_operator | identify latency regression and affected channel |
+| Provider send health | `provider_send_failure_total` | pilot_operator | switch provider fallback or pause sends |
+| Webhook intake health | `api_error_total`, `health_dependency_status` | pilot_operator | inspect signature, provider dashboard, and API health |
+| Review queue age/depth | `queue_depth` | pilot_operator | add operator capacity or pause non-critical work |
+| Unsafe automation blocks | `unsafe_automation_block_total`, `tool_call_failure_total` | pilot_operator | review policy/prompt changes and keep human approval active |
+
+Incident drill acceptance:
+
+- Detection time is recorded from first alert or customer report.
+- Mitigation time records when customer impact is reduced.
+- Customer impact lists affected workflow, channel, and tenant hash only.
+- Root cause records technical cause without raw customer payloads.
+- Prevention tasks include owner and due date.
+- Customer communication uses the severity-to-template mapping in `docs/support/runbook.md`.
 
 Dashboard panels:
 

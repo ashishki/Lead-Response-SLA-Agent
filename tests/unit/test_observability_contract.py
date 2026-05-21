@@ -21,9 +21,11 @@ REQUIRED_METRICS = {
     "retrieval_latency_ms",
     "retrieval_freshness_age_hours",
     "provider_send_failure_total",
+    "api_error_total",
     "sla_breach_total",
     "insufficient_evidence_total",
     "tool_call_failure_total",
+    "unsafe_automation_block_total",
     "queue_depth",
     "health_dependency_status",
 }
@@ -46,10 +48,12 @@ def test_alert_thresholds_cover_required_metrics() -> None:
     assert set(ALERT_THRESHOLDS) >= {
         "first_response_latency_ms_p95",
         "provider_send_failure_total",
+        "api_error_total",
         "sla_breach_total",
         "retrieval_freshness_age_hours",
         "insufficient_evidence_total",
         "tool_call_failure_total",
+        "unsafe_automation_block_total",
         "queue_depth",
     }
     assert all(ALERT_THRESHOLDS.values())

@@ -51,6 +51,13 @@ DEPLOY_SECRET_NAMES = frozenset(
 )
 PROVIDER_SECRET_NAMES_BY_ADAPTER = {
     "email": frozenset({"EMAIL_API_KEY", "EMAIL_SENDER", "EMAIL_API_URL"}),
+    "postmark_email": frozenset(
+        {"POSTMARK_SERVER_TOKEN", "POSTMARK_SENDER", "POSTMARK_MESSAGE_STREAM"}
+    ),
+    "twilio_whatsapp": frozenset(
+        {"TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_WHATSAPP_FROM"}
+    ),
+    "telegram_bot": frozenset({"TELEGRAM_BOT_TOKEN"}),
     "calendar": frozenset({"CALENDAR_API_TOKEN", "CALENDAR_API_URL"}),
     "crm": frozenset({"CRM_API_TOKEN", "CRM_API_URL"}),
     "embedding": frozenset(
@@ -107,6 +114,46 @@ class Settings(BaseSettings):
     email_api_url: str = Field(
         default="https://email-provider.example.test/messages",
         validation_alias="EMAIL_API_URL",
+    )
+    postmark_server_token: str = Field(
+        default="test-postmark-token",
+        validation_alias="POSTMARK_SERVER_TOKEN",
+    )
+    postmark_sender: str = Field(
+        default="leads@example.test",
+        validation_alias="POSTMARK_SENDER",
+    )
+    postmark_message_stream: str = Field(
+        default="outbound",
+        validation_alias="POSTMARK_MESSAGE_STREAM",
+    )
+    postmark_api_url: str = Field(
+        default="https://api.postmarkapp.com/email",
+        validation_alias="POSTMARK_API_URL",
+    )
+    twilio_account_sid: str = Field(
+        default="test-twilio-account-sid",
+        validation_alias="TWILIO_ACCOUNT_SID",
+    )
+    twilio_auth_token: str = Field(
+        default="test-twilio-auth-token",
+        validation_alias="TWILIO_AUTH_TOKEN",
+    )
+    twilio_whatsapp_from: str = Field(
+        default="whatsapp:+15550000000",
+        validation_alias="TWILIO_WHATSAPP_FROM",
+    )
+    twilio_api_url: str = Field(
+        default="https://api.twilio.com/2010-04-01",
+        validation_alias="TWILIO_API_URL",
+    )
+    telegram_bot_token: str = Field(
+        default="test-telegram-bot-token",
+        validation_alias="TELEGRAM_BOT_TOKEN",
+    )
+    telegram_api_url: str = Field(
+        default="https://api.telegram.org",
+        validation_alias="TELEGRAM_API_URL",
     )
     calendar_api_token: str = Field(
         default="test-calendar-token",

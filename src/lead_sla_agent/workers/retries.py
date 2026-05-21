@@ -8,6 +8,9 @@ from dataclasses import dataclass
 
 from redis.asyncio import Redis
 
+from lead_sla_agent.observability.metrics import metrics
+from lead_sla_agent.tools.messaging import MessageSendResult
+
 CreateReviewTask = Callable[[uuid.UUID, str], Awaitable[None]]
 
 
@@ -35,6 +38,30 @@ async def record_send_failure(
     await create_review_task(retry_state.lead_id, reason)
     retry_state.human_review_created = True
     return True
+
+
+async def record_provider_send_result(
+    retry_state: RetryState,
+    result: MessageSendResult,
+    create_review_task: CreateReviewTask,
+) -> bool:
+    """Route failed provider sends into retry/handoff metrics without duplicating sends."""
+    if result.status not in {"failed", "rate_limited"}:
+        return False
+    if retry_state.human_review_created:
+        return False
+
+    metrics.increment("provider_send_failure_total")
+    reason = (
+        "provider_rate_limited"
+        if result.rate_limited
+        else (result.failure_reason or "provider_send_failed")
+    )
+    return await record_send_failure(
+        retry_state=retry_state,
+        create_review_task=create_review_task,
+        reason=reason,
+    )
 
 
 async def record_send_failure_redis(

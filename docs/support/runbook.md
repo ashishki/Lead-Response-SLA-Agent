@@ -51,6 +51,18 @@ Do not paste customer names, phone numbers, emails, raw message text, provider m
 - For Sev1 safety/data issues, customer update must not wait for root cause.
 - Every Sev1 and every repeated Sev2 requires post-incident review.
 
+## Customer Update Template Routing
+
+| Severity / incident type | Customer template | Required timing |
+|--------------------------|-------------------|-----------------|
+| Sev1 provider outage or webhook outage | `Provider Outage` | first update within 15 minutes |
+| Sev2 provider degradation with fallback | `Provider Outage` | first update within 1 business hour |
+| Provider recovery | `Provider Outage Resolved` | send after mitigation is verified |
+| Unsafe autonomous-send risk or policy block spike | `AI Safety Incident` | first update within Sev1/Sev2 target |
+| Normal human-review safety handoff | `AI Safety Handoff` | include in pilot update or agreed customer thread |
+
+Every update must include current impact, workaround or fallback, owner, and next update time. Use tenant hash and operational counts only.
+
 ## Post-Incident Review
 
 Complete within 2 business days for Sev1 and within 5 business days for repeated Sev2.
@@ -60,9 +72,11 @@ Required sections:
 - summary
 - timeline
 - customer impact
+- detection time
 - detection source
 - root cause
 - mitigation
+- mitigation time
 - prevention tasks
 - owner and due date
 - customer-facing follow-up

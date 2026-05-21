@@ -1,7 +1,7 @@
 # Implementation Journal - Lead Response SLA Agent
 
 Version: 1.0
-Last updated: 2026-05-20
+Last updated: 2026-05-21
 Status: append-only
 
 This file records durable handoff context across agents and sessions. It is not the source of truth for architecture or policy.
@@ -24,6 +24,94 @@ This file records durable handoff context across agents and sessions. It is not 
 ---
 
 ## Entries
+
+### 2026-05-21 - T63 - Threat Model and Abuse Protection
+
+- Scope: `docs/security/threat_model.md`, `src/lead_sla_agent/api/rate_limit.py`, `src/lead_sla_agent/api/app.py`, `src/lead_sla_agent/api/webhooks.py`, `src/lead_sla_agent/operator/api.py`, `src/lead_sla_agent/operator/knowledge_api.py`, `src/lead_sla_agent/conversation/loop.py`, `tests/integration/test_security_controls.py`, `docs/agent_eval.md`, `tests/eval/test_agent_eval.py`.
+- Why this work happened: user approved proceeding with security-boundary work for the VPS pilot.
+- Decisions applied: added in-process per-client rate limits for the single-VPS pilot, documented that Redis-backed limits are required before multi-process/multi-node scaling, and made prompt-injection-like messages fail closed to human review without customer-facing drafts.
+- Evidence collected: `.venv/bin/python -m pytest tests/integration/test_security_controls.py tests/eval/test_agent_eval.py tests/integration/test_provider_webhooks.py tests/integration/test_operator_review.py tests/integration/test_knowledge_admin.py -q --tb=short` -> 20 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 251 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed.
+- Verification pass: same-session verification found no open stop-ship security findings; threat model covers assets, actors, trust boundaries, top threats, controls, residual risks, and rate-limit behavior; tests cover rate limits, signature failure, replay idempotency, tenant-scoped operator access, and prompt-injection handoff.
+- Follow-ups: T64 is blocked pending human approval of privacy/legal wording, retention promises, and subprocessor commitments.
+- Notes for next agent: rate limiting is intentionally in-process for the current single-process VPS assumption; move counters to Redis before running multiple API workers or VPS instances.
+
+### 2026-05-21 - Phase 19 Review - Observability and Reliability Operations
+
+- Scope: T60-T62, `docs/audit/PHASE19_REVIEW.md`, `docs/audit/AUDIT_INDEX.md`, `docs/CODEX_PROMPT.md`.
+- Why this work happened: Phase 19 tasks completed and the orchestrator requires a phase-boundary verification artifact before continuing.
+- Decisions applied: stop before T63 because threat modeling, rate limits, replay controls, and prompt-injection handling are security-boundary work requiring human approval.
+- Evidence collected: `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 245 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed.
+- Follow-ups: T63 is blocked pending human approval to change/lock security-boundary behavior.
+- Notes for next agent: this was a same-session verification pass, not an independent review.
+
+### 2026-05-21 - T62 - SLO Dashboard and Incident Drill
+
+- Scope: `docs/nfr.md`, `docs/support/runbook.md`, `docs/support/incident_template.md`, `tests/unit/test_slo_docs.py`.
+- Why this work happened: T62 required measurable reliability commitments, dashboard mappings, incident drill procedure, and customer communication path.
+- Decisions applied: documented pilot SLOs for first-response latency, provider send success, webhook intake success, review queue age, and unsafe autonomous-send count; mapped each SLO to metric names, alert rules, dashboard panels, and operator actions; added incident drill fields and severity-to-template routing.
+- Evidence collected: `.venv/bin/python -m pytest tests/unit/test_slo_docs.py tests/unit/test_support_docs.py tests/unit/test_nfr_doc.py tests/unit/test_alert_contract.py -q --tb=short` -> 13 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 245 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; SLOs cover the required production behaviors, dashboard specification maps each SLO to metric names and alert rules, incident drill template records detection/mitigation/customer impact/root cause/prevention, and support docs link severity to customer update templates.
+- Follow-ups: complete Phase 19 review, then stop before T63 for human security-boundary approval.
+- Notes for next agent: SLOs are explicitly pilot operational targets, not contractual uptime promises.
+
+### 2026-05-21 - T61 - Structured Logs, Traces, and PII Redaction Gate
+
+- Scope: `src/lead_sla_agent/observability/logging.py`, `src/lead_sla_agent/observability/pii.py`, `docs/runbook.md`, `tests/integration/test_log_redaction.py`.
+- Why this work happened: T61 required structured log context and automated PII redaction for production debugging.
+- Decisions applied: added correlation ID context helpers, structured log event emission with tenant hash/component/action/result/latency/trace ID fields, recursive PII scrubbing for structured fields, string-level email/phone redaction, and runbook guidance for correlation-ID incident debugging.
+- Evidence collected: `.venv/bin/python -m pytest tests/integration/test_log_redaction.py tests/unit/test_pii_scrubber.py -q --tb=short` -> 5 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 242 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; captured logs include correlation ID, tenant hash, component, action, result, latency, and trace ID while excluding raw emails, phones, customer names, addresses, message bodies, provider IDs, tokens, and secrets.
+- Follow-ups: continue to T62 SLO Dashboard and Incident Drill.
+- Notes for next agent: logging helpers are available but not yet wired through every runtime path; T62 can document the operational dashboard while T63+ can broaden runtime adoption.
+
+### 2026-05-21 - T60 - Metrics Backend and Alert Routing
+
+- Scope: `src/lead_sla_agent/observability/metrics.py`, `src/lead_sla_agent/api/app.py`, `docs/tasks.md`, `docs/nfr.md`, `docs/runbook.md`, `tests/unit/test_alert_contract.py`, `tests/unit/test_observability_contract.py`.
+- Why this work happened: user approved Grafana Cloud with Prometheus-compatible metrics as the best-practice alerting path for the VPS pilot.
+- Decisions applied: selected Grafana Cloud as the primary metrics/alert backend, Prometheus-compatible `/metrics` as the app export format, Grafana Alloy/Prometheus agent as the VPS scrape/remote-write path, and Prometheus + Alertmanager + Grafana as the same-host fallback that still requires an external uptime check.
+- Evidence collected: `.venv/bin/python -m pytest tests/unit/test_alert_contract.py tests/unit/test_observability_contract.py tests/integration/test_health.py -q --tb=short` -> 12 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 238 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; staging/production export targets use `/metrics`, alert rules include threshold/owner/severity/customer impact/first response expectation, labels are PII-free, and `alert_dry_run("provider_send_failure_rate_high")` routes to `pilot_operator`.
+- Follow-ups: continue to T61 Structured Logs, Traces, and PII Redaction Gate.
+- Notes for next agent: the exporter is intentionally Prometheus text without adding a new dependency; Grafana Cloud credentials are not committed and are represented only as deployment/runbook configuration.
+
+### 2026-05-21 - Phase 18 Review - Live Provider Production Readiness
+
+- Scope: T57-T59, `docs/audit/PHASE18_REVIEW.md`, `docs/audit/AUDIT_INDEX.md`, `docs/CODEX_PROMPT.md`.
+- Why this work happened: Phase 18 tasks completed and the orchestrator requires a phase-boundary verification artifact before continuing.
+- Decisions applied: stop before T60 because choosing the metrics backend and alert route is a human+Codex observability/operations decision for the VPS pilot.
+- Evidence collected: `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 232 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed.
+- Follow-ups: T60 is blocked pending human selection/approval of the metrics backend and alert route for the VPS pilot.
+- Notes for next agent: this was a same-session verification pass, not an independent review.
+
+### 2026-05-21 - T59 - Calendar, CRM, and Messaging Provider Reconciliation
+
+- Scope: `src/lead_sla_agent/operator/provider_reconciliation.py`, `tests/integration/test_provider_reconciliation.py`, `docs/CODEX_PROMPT.md`, `docs/IMPLEMENTATION_JOURNAL.md`, `docs/EVIDENCE_INDEX.md`.
+- Why this work happened: T59 required reconciliation for calendar bookings, CRM writes, and outbound message provider records after live provider paths were defined.
+- Decisions applied: added a deterministic PII-free reconciliation module for expected versus observed provider records; records are keyed by tenant, provider type, idempotency key, and channel; discrepancy types cover missing, duplicate, failed, rate-limited, and stale records; operator actions expose only operational references.
+- Evidence collected: `.venv/bin/python -m pytest tests/integration/test_provider_reconciliation.py tests/integration/test_calendar_provider.py tests/integration/test_crm_provider.py tests/integration/test_live_messaging_contract.py -q --tb=short` -> 19 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 232 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; calendar booking reconciliation uses provider booking IDs and idempotency keys, CRM reconciliation uses remote record/source event IDs, message reconciliation covers email/WhatsApp/Telegram by provider message status and channel, tenant scope is enforced in keys, and operator actions contain no lead PII.
+- Follow-ups: complete Phase 18 review, then stop before T60 until the human chooses/approves the metrics backend and alert route.
+- Notes for next agent: `provider_reconciliation.py` is intentionally pure/deterministic and does not call external providers; T60 can use its discrepancy counts for alert routing later.
+
+### 2026-05-21 - T58 - Provider Webhook End-to-End Drill
+
+- Scope: `src/lead_sla_agent/api/webhooks.py`, `src/lead_sla_agent/intake/signatures.py`, `src/lead_sla_agent/intake/normalizer.py`, `docs/runbook.md`, `tests/integration/test_provider_webhook_e2e.py`.
+- Why this work happened: T58 required public webhook e2e proof for email, WhatsApp, and Telegram after the live outbound provider matrix was selected.
+- Decisions applied: added provider aliases for `postmark_email`, `twilio_whatsapp`, and `telegram_bot`; extended the in-memory webhook store to create transcript hash records and PII-free review task references; documented VPS reverse proxy setup, provider signature headers, Telegram secret-token handling, and WhatsApp opt-in metadata.
+- Evidence collected: `.venv/bin/python -m pytest tests/integration/test_provider_webhook_e2e.py tests/integration/test_provider_webhooks.py tests/integration/test_webhook_intake.py -q --tb=short` -> 15 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 228 passed; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; invalid provider signatures reject before writes, replayed provider event IDs are idempotent across the derived workflow objects, transcript storage uses hashes rather than raw message text, review tasks are PII-free references, and runbook setup avoids token logging.
+- Follow-ups: continue to T59 Calendar and CRM Live Reconciliation.
+- Notes for next agent: `InMemoryWebhookStore.row_counts()` intentionally preserves the older four-table contract; new e2e checks use `workflow_counts()` for transcript/review task coverage.
+
+### 2026-05-21 - T57 - Live Messaging Provider Pilot Path
+
+- Scope: `docs/tasks.md`, `src/lead_sla_agent/tools/messaging.py`, `src/lead_sla_agent/workers/retries.py`, `src/lead_sla_agent/config.py`, `docs/runbook.md`, `tests/integration/test_live_messaging_contract.py`, `tests/unit/test_environment_secret_contract.py`.
+- Why this work happened: user confirmed the pilot needs email, WhatsApp, and Telegram, then asked to detail the tasks and continue implementation.
+- Decisions applied: expanded Phase 18 tasks for Postmark email, Twilio WhatsApp, and Telegram Bot API; implemented a common live outbound messaging contract with provider/channel metadata, Postmark/Twilio/Telegram adapters using injectable HTTP transports, pilot human-approval default, WhatsApp opt-in enforcement, Telegram chat-initiation enforcement, rate-limit handling, and retry/handoff metrics without requiring live credentials in normal tests.
+- Evidence collected: `.venv/bin/python -m pytest tests/integration/test_live_messaging_contract.py tests/integration/test_messaging_provider.py tests/integration/test_provider_adapters.py tests/unit/test_environment_secret_contract.py tests/integration/test_sla_queue.py -q --tb=short` -> 22 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` -> 222 passed after starting isolated PostgreSQL/Redis containers; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; live credentials are scoped by adapter and not needed by tests, pilot sends default to human approval across all channels, provider results record metadata and rate-limit flags, WhatsApp requires opt-in metadata, Telegram requires a user-initiated chat ID, and provider failures create retry/handoff without duplicate review tasks.
+- Follow-ups: continue to T58 Provider Webhook End-to-End Drill.
+- Notes for next agent: test containers `lead-sla-test-postgres` and `lead-sla-test-redis` were started on ports 55432 and 6380 for full verification.
 
 ### 2026-05-20 - Phase 17 Review - Deployment Hardening
 

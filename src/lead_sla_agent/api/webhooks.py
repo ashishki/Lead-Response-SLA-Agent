@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import hashlib
 import uuid
 from typing import Protocol
 
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import ValidationError
 
+from lead_sla_agent.api.rate_limit import enforce_webhook_rate_limit
 from lead_sla_agent.config import get_settings
 from lead_sla_agent.intake.normalizer import normalize_inbound_event
 from lead_sla_agent.intake.schemas import (
@@ -35,6 +37,8 @@ class InMemoryWebhookStore:
         self.provider_events: dict[tuple[uuid.UUID, str], dict[str, object]] = {}
         self.leads: dict[uuid.UUID, dict[str, object]] = {}
         self.conversations: dict[uuid.UUID, dict[str, object]] = {}
+        self.transcripts: dict[uuid.UUID, dict[str, object]] = {}
+        self.review_tasks: list[dict[str, object]] = []
         self.audit_events: list[dict[str, object]] = []
 
     async def accept_event(self, event: NormalizedInboundEvent) -> StoredWebhookResult:
@@ -73,6 +77,23 @@ class InMemoryWebhookStore:
             "lead_id": lead_id,
             "status": "open",
         }
+        self.transcripts[conversation_id] = {
+            "conversation_id": conversation_id,
+            "tenant_id": event.tenant_id,
+            "message_hash": hashlib.sha256((event.message or "").encode("utf-8")).hexdigest(),
+            "payload_hash": event.payload_hash,
+        }
+        self.review_tasks.append(
+            {
+                "tenant_id": event.tenant_id,
+                "lead_id": lead_id,
+                "conversation_id": conversation_id,
+                "provider_event_id": provider_event_id,
+                "reason": "provider_webhook_inbound_review",
+                "channel": event.channel,
+                "payload_hash": event.payload_hash,
+            }
+        )
         self.audit_events.append(
             {
                 "tenant_id": event.tenant_id,
@@ -96,12 +117,20 @@ class InMemoryWebhookStore:
             "audit_event": len(self.audit_events),
         }
 
+    def workflow_counts(self) -> dict[str, int]:
+        """Return full e2e intake counts, including derived workflow objects."""
+        counts = self.row_counts()
+        counts["transcript"] = len(self.transcripts)
+        counts["review_task"] = len(self.review_tasks)
+        return counts
+
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
 
 @router.post("/inbound", status_code=status.HTTP_202_ACCEPTED)
 async def receive_inbound_webhook(request: Request) -> dict[str, str | bool]:
+    await enforce_webhook_rate_limit(request)
     raw_body = await request.body()
     settings = get_settings()
     signature = request.headers.get(SIGNATURE_HEADER)

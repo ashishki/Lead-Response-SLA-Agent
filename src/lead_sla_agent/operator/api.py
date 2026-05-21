@@ -8,12 +8,17 @@ from typing import Any
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
+from lead_sla_agent.api.rate_limit import enforce_operator_rate_limit
 from lead_sla_agent.operator.analytics import PilotAnalyticsStore
 from lead_sla_agent.operator.auth import OperatorPrincipal, require_operator
 from lead_sla_agent.operator.outcomes import OutcomeStore
 from lead_sla_agent.operator.review_queue import HumanReviewTaskStore
 
-router = APIRouter(prefix="/operator", tags=["operator"])
+router = APIRouter(
+    prefix="/operator",
+    tags=["operator"],
+    dependencies=[Depends(enforce_operator_rate_limit)],
+)
 
 
 class ApprovalRequest(BaseModel):

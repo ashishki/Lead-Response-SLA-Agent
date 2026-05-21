@@ -9,8 +9,12 @@ from lead_sla_agent.intake.schemas import InboundWebhookPayload, NormalizedInbou
 
 PROVIDER_CHANNELS = {
     "email": "email",
+    "postmark": "email",
+    "postmark_email": "email",
     "telegram": "telegram",
+    "telegram_bot": "telegram",
     "whatsapp": "whatsapp",
+    "twilio_whatsapp": "whatsapp",
 }
 
 

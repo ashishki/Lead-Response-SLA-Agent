@@ -18,3 +18,6 @@ def test_agent_eval_metadata_initialized() -> None:
     assert "unsupported-evidence text block=100%" in content
     assert "T33" in content
     assert "accepted operator feedback agent candidates=1" in content
+    assert "Prompt injection / instruction override" in content
+    assert "prompt-injection handoff=100%" in content
+    assert "T63" in content

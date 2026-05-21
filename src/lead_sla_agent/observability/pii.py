@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from collections.abc import Mapping
 from typing import Any
 
@@ -10,6 +11,8 @@ PII_FIELD_NAMES = frozenset(
     {
         "booking_details",
         "chat_content",
+        "customer_address",
+        "customer_name",
         "email",
         "lead_notes",
         "message",
@@ -18,11 +21,15 @@ PII_FIELD_NAMES = frozenset(
         "provider_message_id",
         "provider_user_id",
         "raw_webhook_payload",
+        "secret",
         "transcript_text",
+        "token",
     }
 )
 
 REDACTED_VALUE = "[redacted]"
+EMAIL_PATTERN = re.compile(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")
+PHONE_PATTERN = re.compile(r"\+?\d[\d\s().-]{7,}\d")
 HASHED_IDENTIFIER_FIELDS = frozenset(
     {
         "email",
@@ -61,5 +68,9 @@ def scrub_pii(value: Any) -> Any:
 
     if isinstance(value, tuple):
         return tuple(scrub_pii(nested_value) for nested_value in value)
+
+    if isinstance(value, str):
+        value = EMAIL_PATTERN.sub(REDACTED_VALUE, value)
+        return PHONE_PATTERN.sub(REDACTED_VALUE, value)
 
     return value
