@@ -37,6 +37,13 @@ def test_garage_door_vertical_pack_includes_corpus_and_eval_dataset() -> None:
         "gd-booking-policy",
         "gd-safety-policy",
         "gd-commercial-escalation",
+        "gd-public-service-area-dfw",
+        "gd-public-emergency-claims",
+        "gd-public-repair-taxonomy",
+        "gd-public-pricing-boundary",
+        "gd-public-booking-intake",
+        "gd-public-safety-boundary",
+        "gd-public-commercial-escalation",
     }
     assert eval_slices >= {
         "service_area",
@@ -45,9 +52,40 @@ def test_garage_door_vertical_pack_includes_corpus_and_eval_dataset() -> None:
         "safety",
         "high_value",
         "unsupported",
+        "emergency",
+        "repair_taxonomy",
     }
     for case in pack.eval_cases:
         assert set(case["expected_source_document_ids"]) <= document_ids
+
+
+def test_garage_door_public_knowledge_pack_cites_sources_and_assumptions() -> None:
+    pack = load_vertical_pack("garage_door_repair")
+    public_documents = [
+        document
+        for document in pack.corpus_documents
+        if document["source_document_id"].startswith("gd-public-")
+    ]
+    public_eval_cases = [
+        case for case in pack.eval_cases if case["query_id"].startswith("gd-public-")
+    ]
+
+    assert len(public_documents) >= 7
+    assert len(public_eval_cases) >= 10
+    for document in public_documents:
+        assert document["source_record_ids"]
+        assert document["source_urls"]
+        assert "public" in document["owner"]
+    unsupported_cases = [
+        case for case in public_eval_cases if case["expected_status"] == "insufficient_evidence"
+    ]
+    assert len(unsupported_cases) >= 3
+    for case in unsupported_cases:
+        assert case["expected_source_document_ids"] == []
+        assert case["expected_handoff_reason"] in {
+            "regulated_or_safety_advice",
+            "unsupported_question",
+        }
 
 
 def test_garage_door_pack_initializes_demo_tenant() -> None:
@@ -55,7 +93,7 @@ def test_garage_door_pack_initializes_demo_tenant() -> None:
 
     assert demo["tenant"]["slug"] == "dfw-garage-door-demo"
     assert demo["tenant"]["timezone"] == "America/Chicago"
-    assert len(demo["knowledge_documents"]) == 5
-    assert len(demo["retrieval_eval_queries"]) >= 6
+    assert len(demo["knowledge_documents"]) >= 12
+    assert len(demo["retrieval_eval_queries"]) >= 16
     assert "phone" in demo["required_lead_fields"]
     assert "booking_without_acceptance" in demo["handoff_reasons"]

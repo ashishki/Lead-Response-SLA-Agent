@@ -31,6 +31,7 @@ This file is a retrieval index for important decisions. Canonical project docume
 | D-009 | 2026-05-19 | Active | Use `local-hash-embedding-v1` as the deterministic T09 ingestion adapter. | T09 needs versioned embedding metadata and idempotent ingestion tests without introducing provider SDKs or credentials; production embedding selection still requires an ADR/eval update. | `docs/retrieval_eval.md#architecture-metadata` | none |
 | D-010 | 2026-05-20 | Active | Use OpenAI `text-embedding-3-small` at 1536 dimensions as the v1 production embedding model. | Phase 9 needs a real text embedding provider while keeping deterministic/fake embeddings in normal tests; model or dimension changes require ADR and full reindex. | `docs/adr/ADR-002-production-embedding-provider.md` | none |
 | D-011 | 2026-05-20 | Active | Use the authenticated internal JSON operator API as the first pilot console surface. | T32 needs review, approve/edit/send, no-send, and outcome workflows now; a frontend can follow once live operator behavior stabilizes. | `docs/adr/ADR-003-operator-console-surface.md` | none |
+| D-012 | 2026-05-22 | Active | Prioritize a public-source vertical showcase before blocked legal/privacy and broad production tasks. | The operator is solo and needs a coherent demo corpus, scenario bank, replay report, and manual target list before real pilot access is likely. | `docs/tasks.md#phase-22---solo-public-vertical-showcase`, `docs/market/open_source_research_protocol.md` | none |
 
 ---
 

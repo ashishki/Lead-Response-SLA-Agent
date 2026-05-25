@@ -1,7 +1,7 @@
 # Retrieval Evaluation - Lead Response SLA Agent
 
 Version: 1.0
-Last updated: 2026-05-20
+Last updated: 2026-05-23
 Profile: RAG ON
 Retrieval mode: text-only
 
@@ -75,6 +75,7 @@ Seed dataset path: `tests/eval/fixtures/retrieval_seed.json`
 Pilot-like dataset path: `tests/eval/fixtures/retrieval_pilot_seed.json`
 Operator feedback candidate path: `tests/eval/fixtures/operator_feedback_candidates.json`
 Vertical garage door pack eval path: `seed/verticals/garage_door_repair/retrieval_eval.json`
+Vertical public corpus seed path: `seed/verticals/garage_door_repair/public_corpus.json`
 
 Initial dataset requirements:
 - At least 10 queries.
@@ -146,6 +147,8 @@ Do not use answer quality to mask retrieval regressions.
 | 2026-05-20 | T30 | `.venv/bin/python -m pytest tests/eval/test_retrieval_eval.py::test_pilot_retrieval_fixture_has_required_question_slices tests/eval/test_retrieval_eval.py::test_pilot_retrieval_fixture_contains_no_raw_customer_pii tests/eval/test_retrieval_eval.py::test_retrieval_eval_records_valid_t30_history_row, run 2026-05-20` | `rag-index-v1` | `tests/eval/fixtures/retrieval_pilot_seed.json` | pilot dataset validation pass=100%; question_count=50; required slices present: pricing, service_area, cancellation, booking, exact_terms, unsupported, stale, tenant_isolation; PII fixture scan pass=100% | eval-change-induced | pass | Pilot-like dataset is synthetic but modeled on transcript/operator-feedback scenarios; no raw customer PII stored. |
 | 2026-05-20 | T33 | `.venv/bin/python -m pytest tests/eval/test_operator_feedback.py tests/eval/test_retrieval_eval.py, run 2026-05-20` | `rag-index-v1` | `tests/eval/fixtures/operator_feedback_candidates.json` accepted retrieval partition | accepted operator feedback retrieval candidates=1; human approval gate pass=100%; de-identified text PII scan pass=100% | eval-change-induced | pass | Unapproved feedback remains candidate-only and is excluded from canonical retrieval regression partitions. |
 | 2026-05-20 | T35 | `.venv/bin/python -m pytest tests/integration/test_vertical_pack.py tests/eval/test_retrieval_eval.py, run 2026-05-20` | `rag-index-v1` | `seed/verticals/garage_door_repair/retrieval_eval.json` plus `seed/verticals/garage_door_repair/corpus.json` | vertical corpus documents=5; vertical eval queries=6; required slices present: service_area, pricing, booking, safety, high_value, unsupported; expected-source coverage=100% | eval-change-induced | pass | Garage door repair pack can initialize a demo tenant and supplies an approved corpus plus retrieval eval cases. |
+| 2026-05-23 | T71 | `.venv/bin/python -m pytest tests/unit/test_market_docs.py tests/eval/test_retrieval_eval.py, run 2026-05-23` | `rag-index-v1` | `docs/market/public_corpus/garage_door_repair_source_register.md` plus `seed/verticals/garage_door_repair/public_corpus.json` | public source records=35; public knowledge slices=7; required register fields present=100%; private-source and ROI/autonomous-send claim gate pass=100% | eval-change-induced | pass | Public corpus is a source-register seed for future ingestion and demo-pack work; canonical approved retrieval corpus remains unchanged until T73. |
+| 2026-05-23 | T73 | `.venv/bin/python -m pytest tests/integration/test_vertical_pack.py tests/eval/test_retrieval_eval.py, run 2026-05-23` | `rag-index-v1` | `seed/verticals/garage_door_repair/corpus.json` plus `seed/verticals/garage_door_repair/retrieval_eval.json` | vertical corpus documents=12; public knowledge documents=7; vertical eval queries=16; public eval queries=10; unsupported public queries=3; source URL/source ID coverage=100% | corpus-change-induced | pass | Public garage-door corpus was promoted into source-cited knowledge pack entries while unsupported public claims route to insufficient evidence or human review. |
 
 ---
 

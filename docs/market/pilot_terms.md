@@ -4,6 +4,12 @@ Date: 2026-05-20
 Vertical: DFW emergency garage door repair
 Status: non-legal commercial draft for buyer discussion
 
+Pre-pilot note: the public demo report and first-10 target list support only a
+manual replay/pilot conversation. They are not paid terms and do not prove
+conversion lift, ROI, autonomous-send safety, or paid production readiness.
+Before accepting real lead data or payment, a human must approve privacy/legal
+wording, retention promises, and subprocessor commitments.
+
 ## Pilot Offer
 
 Run a 14-day lead-response pilot for one garage door repair company using website forms and one messaging or callback channel.

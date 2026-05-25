@@ -38,6 +38,10 @@ def test_retrieval_eval_metadata_initialized() -> None:
         "Vertical garage door pack eval path: "
         "`seed/verticals/garage_door_repair/retrieval_eval.json`" in content
     )
+    assert (
+        "Vertical public corpus seed path: "
+        "`seed/verticals/garage_door_repair/public_corpus.json`" in content
+    )
     assert "Baseline status | T10 seed retrieval baseline established" in content
 
 
@@ -105,3 +109,10 @@ def test_retrieval_eval_records_valid_t30_history_row() -> None:
     assert "accepted operator feedback retrieval candidates=1" in content
     assert "T35" in content
     assert "vertical corpus documents=5" in content
+    assert "T71" in content
+    assert "public source records=35" in content
+    assert "private-source and ROI/autonomous-send claim gate pass=100%" in content
+    assert "T73" in content
+    assert "vertical corpus documents=12" in content
+    assert "public eval queries=10" in content
+    assert "unsupported public queries=3" in content

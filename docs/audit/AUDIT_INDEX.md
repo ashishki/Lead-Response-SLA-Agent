@@ -1,7 +1,7 @@
 # Audit Index - Lead Response SLA Agent
 
 Version: 1.0
-Last updated: 2026-05-21
+Last updated: 2026-05-23
 Status: append-only
 
 One row per validation or review cycle.
@@ -32,6 +32,8 @@ One row per validation or review cycle.
 | PHASE17-REVIEW | Phase 17 | 2026-05-20 | T53-T56 implementation verification | No | 0 | 0 | 0 |
 | PHASE18-REVIEW | Phase 18 | 2026-05-21 | T57-T59 implementation verification | No | 0 | 0 | 0 |
 | PHASE19-REVIEW | Phase 19 | 2026-05-21 | T60-T62 implementation verification | No | 0 | 0 | 0 |
+| PHASE20-REVIEW | Phase 20 | 2026-05-23 | T63-T65 implementation verification | No | 0 | 0 | 0 |
+| PHASE22-REVIEW | Phase 22 | 2026-05-23 | T70-T77 public showcase readiness verification | No | 0 | 0 | 0 |
 
 ---
 
@@ -59,6 +61,8 @@ One row per validation or review cycle.
 | PHASE17-REVIEW | `docs/audit/PHASE17_REVIEW.md` | Phase 17 | Green |
 | PHASE18-REVIEW | `docs/audit/PHASE18_REVIEW.md` | Phase 18 | Green |
 | PHASE19-REVIEW | `docs/audit/PHASE19_REVIEW.md` | Phase 19 | Green |
+| PHASE20-REVIEW | `docs/audit/PHASE20_REVIEW.md` | Phase 20 | Green |
+| PHASE22-REVIEW | `docs/audit/SOLO_SHOWCASE_READINESS_REVIEW.md` | Phase 22 | Green |
 
 ---
 

@@ -1,0 +1,97 @@
+{
+  "schema_version": "public-vertical-corpus-v1",
+  "vertical_slug": "garage_door_repair",
+  "captured_at": "2026-05-23",
+  "source_register": "docs/market/public_corpus/garage_door_repair_source_register.md",
+  "claim_boundaries": [
+    "Public-source evidence supports demos and synthetic scenarios only.",
+    "Public-source evidence does not prove conversion lift, ROI, autonomous-send safety, or paid production readiness.",
+    "Exact pricing, DIY spring or cable repair, commercial high-value jobs, and unsupported tenant policy questions require human review."
+  ],
+  "public_knowledge_slices": [
+    {
+      "slice_id": "public-service-area-dfw",
+      "category": "service_area",
+      "source_record_ids": [
+        "GD-PUB-001",
+        "GD-PUB-002",
+        "GD-PUB-012",
+        "GD-PUB-023",
+        "GD-PUB-028",
+        "GD-PUB-032"
+      ],
+      "summary": "DFW garage door providers commonly advertise Dallas-Fort Worth metro or Fort Worth-area service. Demo replies may ask for city or ZIP and must avoid promising coverage for a future tenant until its service area is approved."
+    },
+    {
+      "slice_id": "public-emergency-claims",
+      "category": "emergency_claim",
+      "source_record_ids": [
+        "GD-PUB-001",
+        "GD-PUB-009",
+        "GD-PUB-013",
+        "GD-PUB-019",
+        "GD-PUB-021",
+        "GD-PUB-024",
+        "GD-PUB-027",
+        "GD-PUB-029"
+      ],
+      "summary": "Many DFW providers advertise same-day, 24/7, after-hours, or emergency service. Demo scenarios may show urgent acknowledgement and qualification, but public ads do not prove response-time performance."
+    },
+    {
+      "slice_id": "public-repair-taxonomy",
+      "category": "repair_taxonomy",
+      "source_record_ids": [
+        "GD-PUB-004",
+        "GD-PUB-016",
+        "GD-PUB-020",
+        "GD-PUB-025",
+        "GD-PUB-031"
+      ],
+      "summary": "Common garage door repair categories include springs, cables, rollers, tracks, panels, openers, sensors, off-track doors, noisy doors, and hardware issues."
+    },
+    {
+      "slice_id": "public-pricing-ranges",
+      "category": "pricing_range",
+      "source_record_ids": [
+        "GD-PUB-010",
+        "GD-PUB-011",
+        "GD-PUB-015",
+        "GD-PUB-017",
+        "GD-PUB-034"
+      ],
+      "summary": "Public guides support broad pricing ranges and after-hours fee caveats. Demo replies must avoid exact final pricing and explain that diagnosis, parts, door weight, and provider policy affect price."
+    },
+    {
+      "slice_id": "public-booking-intake",
+      "category": "booking_rule",
+      "source_record_ids": [
+        "GD-PUB-008",
+        "GD-PUB-014",
+        "GD-PUB-030"
+      ],
+      "summary": "Public forms and FAQs show intake fields such as name, phone, ZIP/city, service type, date, and confirmation messages. Demo booking must still require explicit customer acceptance."
+    },
+    {
+      "slice_id": "public-safety-boundaries",
+      "category": "safety",
+      "source_record_ids": [
+        "GD-PUB-005",
+        "GD-PUB-018",
+        "GD-PUB-022",
+        "GD-PUB-033",
+        "GD-PUB-035"
+      ],
+      "summary": "Public guides and manuals warn that broken springs and torsion spring work can be dangerous. Demo behavior must not provide DIY spring or cable repair instructions."
+    },
+    {
+      "slice_id": "public-commercial-escalation",
+      "category": "commercial_note",
+      "source_record_ids": [
+        "GD-PUB-003",
+        "GD-PUB-007",
+        "GD-PUB-026"
+      ],
+      "summary": "Commercial doors, roll-up doors, high-speed doors, warehouse dock doors, manual chain hoists, and automatic operators appear in public service scope. Demo leads involving these should route to commercial/high-value review."
+    }
+  ]
+}

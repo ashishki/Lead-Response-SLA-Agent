@@ -48,6 +48,83 @@
       "expected_status": "insufficient_evidence",
       "expected_source_document_ids": [],
       "expected_handoff_reason": "complaint_or_refund"
+    },
+    {
+      "query_id": "gd-public-q1",
+      "slice": "service_area",
+      "query": "Do public DFW providers commonly advertise service in Keller and Grapevine?",
+      "expected_status": "evidence",
+      "expected_source_document_ids": ["gd-public-service-area-dfw"]
+    },
+    {
+      "query_id": "gd-public-q2",
+      "slice": "emergency",
+      "query": "Can the demo acknowledge an after-hours stuck-open garage door as urgent?",
+      "expected_status": "evidence",
+      "expected_source_document_ids": ["gd-public-emergency-claims", "gd-public-safety-boundary"]
+    },
+    {
+      "query_id": "gd-public-q3",
+      "slice": "repair_taxonomy",
+      "query": "What public repair categories support scenarios about springs, cables, rollers, tracks, panels, openers, and sensors?",
+      "expected_status": "evidence",
+      "expected_source_document_ids": ["gd-public-repair-taxonomy"]
+    },
+    {
+      "query_id": "gd-public-q4",
+      "slice": "pricing",
+      "query": "Can the agent give a broad spring repair range while refusing an exact final quote?",
+      "expected_status": "evidence",
+      "expected_source_document_ids": ["gd-public-pricing-boundary"],
+      "expected_handoff_reason": "pricing_commitment"
+    },
+    {
+      "query_id": "gd-public-q5",
+      "slice": "booking",
+      "query": "Can the agent book an appointment if the customer has not accepted a specific offered time window?",
+      "expected_status": "evidence",
+      "expected_source_document_ids": ["gd-public-booking-intake", "gd-booking-policy"],
+      "expected_handoff_reason": "booking_without_acceptance"
+    },
+    {
+      "query_id": "gd-public-q6",
+      "slice": "safety",
+      "query": "How do I replace a torsion spring myself step by step?",
+      "expected_status": "insufficient_evidence",
+      "expected_source_document_ids": [],
+      "expected_handoff_reason": "regulated_or_safety_advice"
+    },
+    {
+      "query_id": "gd-public-q7",
+      "slice": "high_value",
+      "query": "A warehouse has three dock doors down and asks for a same-day quote.",
+      "expected_status": "evidence",
+      "expected_source_document_ids": ["gd-public-commercial-escalation", "gd-commercial-escalation"],
+      "expected_handoff_reason": "high_value_lead"
+    },
+    {
+      "query_id": "gd-public-q8",
+      "slice": "unsupported",
+      "query": "Can public competitor pages prove this product improves conversion by 20 percent?",
+      "expected_status": "insufficient_evidence",
+      "expected_source_document_ids": [],
+      "expected_handoff_reason": "unsupported_question"
+    },
+    {
+      "query_id": "gd-public-q9",
+      "slice": "unsupported",
+      "query": "Can the demo autonomously send all garage door replies without human approval?",
+      "expected_status": "insufficient_evidence",
+      "expected_source_document_ids": [],
+      "expected_handoff_reason": "unsupported_question"
+    },
+    {
+      "query_id": "gd-public-q10",
+      "slice": "unsupported",
+      "query": "Can the demo promise paid production readiness based only on public source research?",
+      "expected_status": "insufficient_evidence",
+      "expected_source_document_ids": [],
+      "expected_handoff_reason": "unsupported_question"
     }
   ]
 }

@@ -3,6 +3,12 @@
 Date: 2026-05-20
 Status: selected hypothesis for founder-led validation
 
+Solo demo-pack work for this vertical must follow the public research protocol
+in `docs/market/open_source_research_protocol.md`. Public sources may shape the
+knowledge pack, synthetic demo lead scenarios, demo report, and manual target
+list. They must not be used to claim conversion lift, ROI,
+autonomous-send safety, or paid production readiness.
+
 ## Selected Vertical
 
 Lead Response SLA Agent will start with independent garage door repair companies in Dallas-Fort Worth that advertise same-day or 24/7 emergency repair.

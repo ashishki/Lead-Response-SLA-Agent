@@ -31,3 +31,11 @@ def test_tool_eval_records_runtime_scenarios() -> None:
     assert "CRM failure audit path rate=100%" in content
     assert "T33" in content
     assert "accepted operator feedback tool candidates=1" in content
+    assert "T74" in content
+    assert "replay send-decision coverage=100%" in content
+    assert "unsafe autonomous send count=0" in content
+    assert "no provider adapter execution=100%" in content
+    assert "T67a" in content
+    assert "failure case count=7" in content
+    assert "outbound confirmed count=0" in content
+    assert "human review created count=7" in content

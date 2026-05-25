@@ -3,6 +3,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+SOURCE_REGISTER = Path("docs/market/public_corpus/garage_door_repair_source_register.md")
+
 
 def test_pilot_vertical_doc_selects_one_vertical_and_metrics() -> None:
     content = Path("docs/market/pilot_vertical.md").read_text(encoding="utf-8")
@@ -30,7 +32,12 @@ def test_first_10_targets_doc_has_ten_accounts_and_validation_gate() -> None:
     assert len(target_rows) == 10
     assert "Primary channel" in content
     assert "Secondary channel" in content
-    assert "at least 5 of these 10 accounts confirm urgent lead-response pain" in content
+    assert "docs/market/demo_report_garage_door_repair.md" in content
+    assert "No automated outreach is executed by the product or agent" in content
+    assert "narrow replay/pilot conversation" in content
+    assert "at least 5 of these 10 accounts" in content
+    for source_id in ("GD-PUB-001", "GD-PUB-010", "GD-PUB-019", "GD-PUB-029"):
+        assert source_id in content
 
 
 def test_pilot_measurement_plan_defines_periods_and_metrics() -> None:
@@ -117,6 +124,193 @@ def test_demo_script_maps_to_garage_door_pain() -> None:
     assert "exact spring replacement price" in content
     assert "booking blocked until explicit acceptance" in content
     assert "recovered jobs and dispatcher burden" in content
+
+
+def test_public_research_protocol_defines_sources_register_and_claim_limits() -> None:
+    content = Path("docs/market/open_source_research_protocol.md").read_text(encoding="utf-8")
+
+    for section in (
+        "Allowed Sources",
+        "Forbidden Sources",
+        "Required Source Register",
+        "Claim Rule",
+        "Demo Artifact Rules",
+    ):
+        assert f"## {section}" in content
+    for field in (
+        "source_url_or_locator",
+        "captured_at",
+        "company_or_source_type",
+        "evidence_kind",
+        "extracted_fact",
+        "demo_use",
+        "limitation",
+        "pii_contact_handling",
+    ):
+        assert field in content
+    for blocked_claim in (
+        "conversion lift",
+        "ROI",
+        "autonomous-send safety",
+        "paid production readiness",
+    ):
+        assert blocked_claim in content
+
+
+def test_market_docs_link_public_research_protocol_for_demo_pack_work() -> None:
+    protocol_path = "docs/market/open_source_research_protocol.md"
+    pilot_vertical = Path("docs/market/pilot_vertical.md").read_text(encoding="utf-8")
+    demo_script = Path("docs/market/demo_script.md").read_text(encoding="utf-8")
+
+    assert protocol_path in pilot_vertical
+    assert protocol_path in demo_script
+    assert "synthetic demo" in pilot_vertical
+    assert "synthetic demo" in demo_script
+    for blocked_claim in (
+        "conversion lift",
+        "ROI",
+        "autonomous-send safety",
+        "paid production readiness",
+    ):
+        assert blocked_claim in pilot_vertical
+        assert blocked_claim in demo_script
+
+
+def test_garage_door_public_source_register_has_required_records() -> None:
+    content = SOURCE_REGISTER.read_text(encoding="utf-8")
+    rows = re.findall(r"^\| GD-PUB-\d{3} \|", content, flags=re.MULTILINE)
+
+    assert len(rows) >= 30
+    for header in (
+        "source_url_or_locator",
+        "captured_at",
+        "company_or_source_type",
+        "evidence_kind",
+        "extracted_fact",
+        "demo_use",
+        "limitation",
+        "pii_contact_handling",
+    ):
+        assert header in content
+    for evidence_kind in (
+        "service_area",
+        "pricing_range",
+        "booking_rule",
+        "emergency_claim",
+        "repair_taxonomy",
+        "commercial_note",
+        "safety",
+    ):
+        assert evidence_kind in content
+    assert "conversion lift, ROI, autonomous-send safety, or paid" in content
+    assert "private lead logs" in content
+    assert "Public business page only; no customer PII copied." in content
+
+
+def test_garage_door_public_seed_corpus_links_source_register() -> None:
+    content = Path("seed/verticals/garage_door_repair/public_corpus.json").read_text(
+        encoding="utf-8"
+    )
+
+    assert "public-vertical-corpus-v1" in content
+    assert str(SOURCE_REGISTER) in content
+    for category in (
+        "service_area",
+        "emergency_claim",
+        "repair_taxonomy",
+        "pricing_range",
+        "booking_rule",
+        "safety",
+        "commercial_note",
+    ):
+        assert f'"category": "{category}"' in content
+    for blocked_claim in (
+        "conversion lift",
+        "ROI",
+        "autonomous-send safety",
+        "paid production readiness",
+    ):
+        assert blocked_claim in content
+
+
+def test_garage_door_demo_report_packages_public_showcase_without_claims() -> None:
+    content = Path("docs/market/demo_report_garage_door_repair.md").read_text(encoding="utf-8")
+
+    for section in (
+        "Artifact Map",
+        "Vertical Corpus Summary",
+        "Scenario Coverage",
+        "Replay Metrics",
+        "Demo Examples",
+        "Safety Boundaries",
+        "Missing Real-Pilot Evidence",
+        "Real Pilot Proof Plan",
+    ):
+        assert f"## {section}" in content
+    for artifact in (
+        "garage_door_repair_source_register.md",
+        "garage_door_leads.json",
+        "garage_door_replay_report.json",
+    ):
+        assert artifact in content
+    assert "35 public source records" in content
+    assert "50 synthetic" in content
+    assert "Unsafe autonomous send count | 0" in content
+    for blocked_claim in (
+        "conversion lift",
+        "ROI",
+        "autonomous-send safety",
+        "paid production readiness",
+    ):
+        assert blocked_claim in content
+    assert "Required proof" in content
+
+
+def test_demo_script_links_report_and_real_pilot_proof_ask() -> None:
+    content = Path("docs/market/demo_script.md").read_text(encoding="utf-8")
+
+    assert "docs/market/demo_report_garage_door_repair.md" in content
+    assert "35 public source records" in content
+    assert "50 synthetic lead" in content
+    assert "zero unsafe autonomous sends" in content
+    assert "Real Pilot Proof Ask" in content
+    assert "booked-job attribution" in content
+    assert "docs/market/first_10_targets.md" in content
+    assert "Outreach is manual" in content
+    assert "no automated email" in content
+
+
+def test_pilot_terms_keep_public_showcase_out_of_paid_terms() -> None:
+    content = Path("docs/market/pilot_terms.md").read_text(encoding="utf-8")
+
+    assert "Pre-pilot note" in content
+    assert "manual replay/pilot conversation" in content
+    assert "Before accepting real lead data or payment" in content
+    for blocked_claim in (
+        "conversion lift",
+        "ROI",
+        "autonomous-send safety",
+        "paid production readiness",
+    ):
+        assert blocked_claim in content
+
+
+def test_solo_showcase_readiness_review_records_decision_and_no_go_conditions() -> None:
+    content = Path("docs/audit/SOLO_SHOWCASE_READINESS_REVIEW.md").read_text(encoding="utf-8")
+
+    assert "SOLO_SHOWCASE_READINESS_REVIEW: PASS" in content
+    for artifact in (
+        "garage_door_repair_source_register.md",
+        "garage_door_leads.json",
+        "garage_door_replay_report.json",
+        "demo_report_garage_door_repair.md",
+        "first_10_targets.md",
+    ):
+        assert artifact in content
+    assert "No-Go Conditions" in content
+    assert "Missing Real-Pilot Evidence" in content
+    assert "founder-led manual outreach" in content
+    assert "Codex should not resume T64 until the human approves" in content
 
 
 def test_objection_doc_covers_required_sales_risks() -> None:

@@ -13,14 +13,14 @@ Execution mode: Codex-only. Do not invoke Codex through `codex exec` or any nest
 
 ## Current State
 
-- Product state: validated prototype completed through T18; first production-readiness task graph completed through T49; production hardening backlog completed through T63 and defined through T69.
-- Active task graph: `docs/tasks.md` T50-T69.
+- Product state: validated prototype completed through T18; first production-readiness task graph completed through T49; production hardening backlog completed through T66 and defined through T69; solo public vertical showcase Phase 22 completed through T77; pre-pilot evidence package completed through T67a.
+- Active task graph: blocked real-data T67-T69. Phase 22 T70-T77 complete.
 - Completed task archive: `docs/archive/tasks_T01_T18_completed.md`.
 - Prior prompt archive: `docs/archive/CODEX_PROMPT_T01_T18_completed.md`.
-- Last verified baseline: 251 passing tests (`DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ -q --tb=short` against isolated local PostgreSQL and Redis).
-- Last verified lint: passing (`.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py`; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py`).
-- Last phase review: `docs/audit/PHASE19_REVIEW.md`.
-- Last updated: 2026-05-21.
+- Last verified baseline: 265 passed, 26 skipped (`DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ --tb=short` against isolated local PostgreSQL and Redis).
+- Last verified lint: passing (`.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py scripts/replay_demo_leads.py`; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py scripts/replay_demo_leads.py`).
+- Last phase review: `docs/audit/PHASE20_REVIEW.md`.
+- Last updated: 2026-05-25.
 
 ---
 
@@ -40,21 +40,22 @@ Execution mode: Codex-only. Do not invoke Codex through `codex exec` or any nest
 
 ## Next Task
 
-T64: Privacy, Retention, and Customer Data Terms
+T67: Real-Data Eval and Operator Feedback Loop
 
 Task source: `docs/tasks.md`
 
 Task digest:
-- Align customer-facing privacy/data terms with implemented export, delete/anonymize, retention, audit, and subprocessor behavior.
-- Privacy docs must explain collected data, purpose, retention period, export/delete behavior, and subprocessors.
-- Retention jobs or documented manual procedure must enforce transcript/audit/export retention expectations.
-- Legal docs must avoid promises the system cannot technically honor.
+- Convert de-identified pilot transcripts and operator corrections into retrieval, tool, and agent regression evals.
+- Requires approved real pilot feedback/export data before implementation.
+- Stop until a human supplies or approves real pilot artifacts for de-identification.
 
 ---
 
 ## Fix Queue
 
-- T64 is blocked pending human approval of privacy/legal wording, retention promises, and subprocessor commitments before they become customer-facing terms.
+- If Phase 22 lacks data, follow `docs/market/open_source_research_protocol.md` and gather public sources with citations instead of stopping.
+- T67 is blocked pending approved real pilot transcripts, operator corrections, provider failure/retry cases, and human approval metadata for eval use.
+- T67a may proceed only as pre-pilot controlled evidence; do not rename it or treat it as real-data eval proof.
 
 ---
 

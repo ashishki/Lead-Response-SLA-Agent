@@ -41,6 +41,76 @@
       "approved_on": "2026-05-20",
       "owner": "demo-operator",
       "text": "Commercial dock doors, roll-up doors, gates, high-speed doors, and multi-door jobs are high-value leads. Capture site type, number of doors, access constraints, urgency, and callback details, then route to the owner or commercial dispatcher before quoting."
+    },
+    {
+      "source_document_id": "gd-public-service-area-dfw",
+      "title": "Public DFW Service-Area Evidence",
+      "category": "service_area",
+      "approved_on": "2026-05-23",
+      "owner": "public-source-register",
+      "source_record_ids": ["GD-PUB-001", "GD-PUB-002", "GD-PUB-012", "GD-PUB-023", "GD-PUB-028", "GD-PUB-032"],
+      "source_urls": ["https://expressgaragedoordfw.com/", "https://ogd.com/tx/fort-worth/", "https://vikingoverhead.com/areas-we-serve/", "https://dadsgaragedoors.com/", "https://garagedoordallasmetro.com/"],
+      "text": "Public DFW garage door providers commonly advertise Dallas-Fort Worth or Fort Worth-area service, including cities such as Fort Worth, Arlington, Keller, Southlake, Grapevine, Irving, Plano, Frisco, and Dallas. This supports demo service-area questions only. Future tenant coverage must be confirmed before promising service."
+    },
+    {
+      "source_document_id": "gd-public-emergency-claims",
+      "title": "Public Emergency And Same-Day Claims",
+      "category": "emergency",
+      "approved_on": "2026-05-23",
+      "owner": "public-source-register",
+      "source_record_ids": ["GD-PUB-001", "GD-PUB-009", "GD-PUB-013", "GD-PUB-019", "GD-PUB-021", "GD-PUB-024", "GD-PUB-027", "GD-PUB-029"],
+      "source_urls": ["https://expressgaragedoordfw.com/", "https://dallasgaragedoorrepairpro.com/", "https://ogd.com/tx/fort-worth/", "https://precisiondoorfortworth.com/garage-door-repair", "https://vikingoverhead.com/services/emergency-garage-door-repair/", "https://longhorngaragedoors.com/", "https://stewardgarage.com/", "https://www.springergaragedoor.com/"],
+      "text": "Many public DFW provider pages advertise same-day, emergency, after-hours, or 24/7 garage door repair. This supports urgent acknowledgement and qualification scenarios, but it does not prove measured response time or availability for any future tenant."
+    },
+    {
+      "source_document_id": "gd-public-repair-taxonomy",
+      "title": "Public Garage Door Repair Taxonomy",
+      "category": "repair_taxonomy",
+      "approved_on": "2026-05-23",
+      "owner": "public-source-register",
+      "source_record_ids": ["GD-PUB-004", "GD-PUB-016", "GD-PUB-020", "GD-PUB-025", "GD-PUB-031"],
+      "source_urls": ["https://expressgaragedoordfw.com/repair/", "https://ogd.com/residential/garage-door-repair/", "https://precisiondoorfortworth.com/garage-door-repair", "https://www.ustx-garagedoors.com/", "https://www.msgaragedoors.com/"],
+      "text": "Public provider pages commonly list springs, cables, rollers, tracks, panels, openers, sensors, off-track doors, noisy doors, and hardware issues. Demo intake can use these as issue labels and follow-up prompts."
+    },
+    {
+      "source_document_id": "gd-public-pricing-boundary",
+      "title": "Public Pricing Range Boundary",
+      "category": "pricing",
+      "approved_on": "2026-05-23",
+      "owner": "public-source-register",
+      "source_record_ids": ["GD-PUB-010", "GD-PUB-011", "GD-PUB-015", "GD-PUB-017", "GD-PUB-034"],
+      "source_urls": ["https://dallasgaragedoorrepairpro.com/garage-door-repair-cost-dallas/", "https://dallasgaragedoorrepairpro.com/blog/garage-door-repair-cost-dallas-guide/", "https://ogd.com/tx/fort-worth/", "https://ogd.com/garage-door-spring-repair-guide/", "https://www.bobvila.com/articles/garage-door-spring-replacement-cost/"],
+      "text": "Public guides support broad range language for common repairs and note that emergency or after-hours work may carry additional fees. The agent must not promise an exact final price before diagnosis, because door type, door weight, parts, labor, timing, and provider policy affect cost."
+    },
+    {
+      "source_document_id": "gd-public-booking-intake",
+      "title": "Public Booking And Intake Evidence",
+      "category": "booking",
+      "approved_on": "2026-05-23",
+      "owner": "public-source-register",
+      "source_record_ids": ["GD-PUB-008", "GD-PUB-014", "GD-PUB-030"],
+      "source_urls": ["https://dallasgaragedoorrepairpro.com/", "https://ogd.com/tx/fort-worth/", "https://www.dafgaragedoor.com/"],
+      "text": "Public forms and FAQs show intake details such as name, phone, ZIP or city, service type, date, message, appointment confirmation, and technician-on-the-way messages. Demo booking must still require explicit customer acceptance of a fresh offered window."
+    },
+    {
+      "source_document_id": "gd-public-safety-boundary",
+      "title": "Public Safety Boundary Evidence",
+      "category": "safety",
+      "approved_on": "2026-05-23",
+      "owner": "public-source-register",
+      "source_record_ids": ["GD-PUB-005", "GD-PUB-018", "GD-PUB-022", "GD-PUB-033", "GD-PUB-035"],
+      "source_urls": ["https://expressgaragedoordfw.com/repair/", "https://ogd.com/garage-door-spring-repair-guide/", "https://vikingoverhead.com/services/garage-door-spring-repair/", "https://thegarage.guide/problems/garage-door-spring-replacement", "https://www.overheadonline.com/uploads/Garage_Door_Manuals/homeowners-garage-door-manual-impression-980.pdf"],
+      "text": "Public guides and manuals warn that broken springs, torsion spring work, jammed doors, and cable or spring repairs can be dangerous. The agent must not provide DIY spring, cable, or forced-door repair instructions and should route safety advice to human review."
+    },
+    {
+      "source_document_id": "gd-public-commercial-escalation",
+      "title": "Public Commercial Escalation Evidence",
+      "category": "escalation",
+      "approved_on": "2026-05-23",
+      "owner": "public-source-register",
+      "source_record_ids": ["GD-PUB-003", "GD-PUB-007", "GD-PUB-026"],
+      "source_urls": ["https://expressgaragedoordfw.com/", "https://expressgaragedoordfw.com/commercial-repair/", "https://americaneagleoverheaddoor.com/"],
+      "text": "Public provider pages mention commercial overhead doors, roll-up doors, high-speed doors, warehouse dock doors, manual chain hoists, automatic operators, and downtime-sensitive repair. Commercial, multi-door, dock, gate, and roll-up cases should route to human review before quotes or commitments."
     }
   ]
 }

@@ -1,0 +1,93 @@
+{
+  "claim_boundary": "Failure-mode replay is controlled evidence only. Real provider failure rates and retry outcomes require a live pilot.",
+  "data_classification": "synthetic_failure_replay",
+  "failures": [
+    {
+      "audit_trail_preserved": true,
+      "autonomous_send_allowed": false,
+      "category": "duplicate",
+      "expected_handoff_reason": "possible_duplicate",
+      "failure_simulation": "possible_duplicate",
+      "human_review_created": true,
+      "lead_dropped": false,
+      "outbound_confirmed": false,
+      "scenario_id": "gd-lead-033"
+    },
+    {
+      "audit_trail_preserved": true,
+      "autonomous_send_allowed": false,
+      "category": "provider_failure",
+      "expected_handoff_reason": "provider_timeout",
+      "failure_simulation": "sms_provider_timeout",
+      "human_review_created": true,
+      "lead_dropped": false,
+      "outbound_confirmed": false,
+      "scenario_id": "gd-lead-039"
+    },
+    {
+      "audit_trail_preserved": true,
+      "autonomous_send_allowed": false,
+      "category": "provider_failure",
+      "expected_handoff_reason": "provider_hard_failure",
+      "failure_simulation": "email_provider_hard_failure",
+      "human_review_created": true,
+      "lead_dropped": false,
+      "outbound_confirmed": false,
+      "scenario_id": "gd-lead-040"
+    },
+    {
+      "audit_trail_preserved": true,
+      "autonomous_send_allowed": false,
+      "category": "crm_failure",
+      "expected_handoff_reason": "crm_write_failure",
+      "failure_simulation": "crm_write_failure",
+      "human_review_created": true,
+      "lead_dropped": false,
+      "outbound_confirmed": false,
+      "scenario_id": "gd-lead-041"
+    },
+    {
+      "audit_trail_preserved": true,
+      "autonomous_send_allowed": false,
+      "category": "crm_failure",
+      "expected_handoff_reason": "crm_lookup_unavailable",
+      "failure_simulation": "crm_lookup_unavailable",
+      "human_review_created": true,
+      "lead_dropped": false,
+      "outbound_confirmed": false,
+      "scenario_id": "gd-lead-042"
+    },
+    {
+      "audit_trail_preserved": true,
+      "autonomous_send_allowed": false,
+      "category": "tenant_policy_missing",
+      "expected_handoff_reason": "missing_tenant_policy",
+      "failure_simulation": "missing_tenant_policy",
+      "human_review_created": true,
+      "lead_dropped": false,
+      "outbound_confirmed": false,
+      "scenario_id": "gd-lead-047"
+    },
+    {
+      "audit_trail_preserved": true,
+      "autonomous_send_allowed": false,
+      "category": "tenant_policy_missing",
+      "expected_handoff_reason": "missing_tenant_policy",
+      "failure_simulation": "missing_tenant_policy",
+      "human_review_created": true,
+      "lead_dropped": false,
+      "outbound_confirmed": false,
+      "scenario_id": "gd-lead-048"
+    }
+  ],
+  "generated_on": "2026-05-25",
+  "schema_version": "garage-door-failure-mode-replay-v1",
+  "summary": {
+    "audit_trail_preserved_count": 7,
+    "autonomous_send_allowed_count": 0,
+    "failure_case_count": 7,
+    "human_review_created_count": 7,
+    "lead_dropped_count": 0,
+    "outbound_confirmed_count": 0
+  }
+}

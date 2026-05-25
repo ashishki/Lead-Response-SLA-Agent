@@ -1,7 +1,7 @@
 # Tool-Use Evaluation - Lead Response SLA Agent
 
 Version: 1.0
-Last updated: 2026-05-20
+Last updated: 2026-05-23
 Profile: Tool-Use ON
 
 ---
@@ -60,6 +60,8 @@ This artifact tracks tool schema, side-effect, idempotency, timeout, and unsafe-
 | 2026-05-20 | T25 | `tool-schema-v1` | calendar fresh lookup gate, explicit acceptance gate, booking idempotency, provider timeout human-review fallback, adapter secret scope | booking safety pass rate=100%; idempotency replay pass rate=100%; provider timeout fallback rate=100% | pass | Calendar adapter uses fake HTTP provider responses in tests and reads only `CALENDAR_API_TOKEN` and `CALENDAR_API_URL` from settings. |
 | 2026-05-20 | T26 | `tool-schema-v1` | CRM create/update by source event ID, CRM create/update by lead ID, duplicate write idempotency, failed write audit/retry path, adapter secret scope | CRM idempotency replay pass rate=100%; CRM failure audit path rate=100%; provider credential scope pass rate=100% | pass | CRM adapter uses fake HTTP provider responses in tests and reads only `CRM_API_TOKEN` and `CRM_API_URL` from settings. |
 | 2026-05-20 | T33 | `tool-schema-v1` | accepted operator feedback fixture partition for booking-without-acceptance correction | accepted operator feedback tool candidates=1; human approval gate pass=100%; PII scan pass=100% | pass | Unapproved operator feedback is excluded from canonical tool regression partitions until explicitly accepted by a human reviewer. |
+| 2026-05-23 | T74 | `tool-schema-v1` | garage-door demo replay send/no-send decisions with human approval enabled | replay send-decision coverage=100%; unsafe autonomous send count=0; operator approval required for safe drafts=100%; no provider adapter execution=100% | pass | Replay harness is deterministic and produces no external sends; it records send/no-send decisions for future demo review without invoking messaging, booking, CRM, or calendar providers. |
+| 2026-05-25 | T67a | `tool-schema-v1` | controlled provider/CRM failure-mode replay for pre-pilot evidence | failure case count=7; outbound confirmed count=0; human review created count=7; audit trail preserved count=7; lead dropped count=0; autonomous send allowed count=0 | pass | Failure-mode replay uses synthetic provider/CRM/policy failures and does not execute real providers or prove real outage frequency. |
 
 ---
 

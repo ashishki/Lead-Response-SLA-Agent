@@ -1534,6 +1534,54 @@ Evidence:
 Market-Gate:
   - Product quality improves from real operator behavior, not synthetic assumptions.
 
+### T67a: Pre-Pilot Evidence Package
+
+Owner: codex
+Phase: 21
+Type: eval agent:quality rag:quality tool:safety gtm
+Depends-On: T66, T74, T75
+
+Objective: |
+  Create a claim-safe pre-pilot evidence package that proves controlled scenario
+  behavior, baseline comparison, failure handling, and human-approval readiness
+  without pretending to have real pilot production data.
+
+Acceptance-Criteria:
+  - AC-1: The public/synthetic garage-door scenario fixture has at least 50
+    scenarios across at least 10 categories, with expected urgency, action,
+    human-approval, and blocked-claim metadata.
+  - AC-2: Replay artifacts include controlled agent behavior, baseline
+    comparison, and failure-mode results with zero autonomous sends.
+  - AC-3: Buyer-facing docs state exactly what is proven, what is not proven,
+    and which evidence still requires a real pilot.
+  - AC-4: Expert review rubric supports external dispatcher/operator review
+    without collecting raw customer PII.
+  - AC-5: Tests reject production ROI, live-client proof, autonomous-send
+    safety, and paid-readiness claims in the pre-pilot package.
+
+Files:
+  - `tests/eval/fixtures/garage_door_leads.json`
+  - `scripts/replay_demo_leads.py`
+  - `docs/market/pre_pilot_evidence_plan.md`
+  - `docs/market/pre_pilot_evidence_report.md`
+  - `docs/market/pre_pilot_demo_script.md`
+  - `docs/market/expert_review_rubric.md`
+  - `docs/market/baseline_comparison.md`
+  - `docs/market/failure_mode_replay.md`
+  - `docs/market/demo_replays/`
+  - `tests/eval/test_pre_pilot_replay.py`
+  - `tests/unit/test_pre_pilot_docs.py`
+
+Evidence:
+  - Pre-pilot replay reports.
+  - Baseline comparison report.
+  - Failure-mode replay report.
+  - Claim-boundary doc tests.
+
+Market-Gate:
+  - Buyer can evaluate a credible pilot ask using controlled evidence, while
+    real ROI and live-production claims remain explicitly unproven.
+
 ### T68: Autonomous Send Readiness Gate
 
 Owner: human + codex
@@ -1611,3 +1659,267 @@ The highest-leverage path is:
 7. Phase 21: launch a controlled pilot, feed real data into evals, then run go/no-go readiness review.
 
 Avoid enabling autonomous send or broad paid production before real pilot evidence, rollback rehearsal, alert routing, provider reconciliation, and privacy/legal commitments are proven.
+
+---
+
+## Phase 22 - Solo Public Vertical Showcase
+
+Goal: build a polished, public-source lead-response showcase that a solo
+operator can create without customer access. This phase should produce a
+vertical knowledge pack, synthetic but evidence-derived lead scenarios, agent
+replay artifacts, and a manual outreach package.
+
+Boundary:
+
+- public vertical research is allowed and expected;
+- private lead logs, CRM exports, call recordings, inboxes, and paid lead
+  portals are not allowed without explicit human approval;
+- all generated leads are synthetic/demo unless a customer approves real data;
+- if a task lacks enough data, the agent must follow
+  `docs/market/open_source_research_protocol.md` and collect public sources
+  instead of stopping.
+
+Exit criteria:
+
+- one selected vertical has at least 30 public source records;
+- the knowledge pack has source links and unsupported-answer boundaries;
+- at least 30 synthetic lead scenarios are generated from public evidence;
+- replay artifacts show acknowledgement, qualification, evidence-grounded
+  replies, handoff reasons, and unsafe/unsupported behavior;
+- a demo report and first-10 manual outreach target list are ready.
+
+### T70: Public Vertical Research Protocol
+
+Owner: codex
+Phase: 22
+Type: market research
+Depends-On: T63
+
+Objective: |
+  Document the public vertical research protocol and connect it to pilot/demo
+  tasks so future agents gather missing public data safely.
+
+Acceptance-Criteria:
+  - AC-1: Protocol lists allowed sources, forbidden sources, source-register
+    fields, and claim boundaries.
+  - AC-2: Market docs point to the protocol for solo demo-pack work.
+  - AC-3: The protocol blocks conversion, ROI, and autonomous-send claims from
+    public demo data.
+
+Files:
+  - `docs/market/open_source_research_protocol.md`
+  - `docs/market/pilot_vertical.md`
+  - `docs/market/demo_script.md`
+
+Evidence:
+  - Manual doc review.
+
+Market-Gate:
+  - The agent can continue public vertical research without private customer
+    access.
+
+### T71: Garage Door Public Corpus And Source Register
+
+Owner: codex
+Phase: 22
+Type: market research rag:ingestion
+Depends-On: T70
+
+Objective: |
+  Build the first public corpus for the DFW emergency garage door repair wedge:
+  companies, service pages, FAQs, service-area pages, booking/contact rules,
+  pricing-range evidence, and escalation boundaries.
+
+Acceptance-Criteria:
+  - AC-1: Source register contains at least 30 public records from the selected
+    vertical.
+  - AC-2: Each source record has URL/locator, captured_at, evidence_kind,
+    extracted_fact, demo_use, and limitation.
+  - AC-3: No private contact data or unsupported ROI claim is committed.
+
+Files:
+  - `docs/market/public_corpus/garage_door_repair_source_register.md`
+  - `seed/verticals/garage_door_repair/`
+
+Evidence:
+  - Source register with links.
+  - Public-safe seed corpus.
+
+Market-Gate:
+  - Demo knowledge is grounded in public vertical facts instead of invented
+    examples.
+
+### T72: Evidence-Derived Synthetic Lead Scenario Bank
+
+Owner: codex
+Phase: 22
+Type: eval agent:quality
+Depends-On: T71
+
+Objective: |
+  Create at least 30 synthetic inbound lead scenarios from the public corpus,
+  covering routine, urgent, missing-field, unsupported, and risky cases.
+
+Acceptance-Criteria:
+  - AC-1: Each synthetic lead cites the public source facts or assumptions that
+    shaped it.
+  - AC-2: Scenario labels include expected extracted fields, next action,
+    handoff reason, and unsafe/unsupported expectation.
+  - AC-3: Scenario bank is clearly labeled as synthetic demo data.
+
+Files:
+  - `tests/eval/fixtures/garage_door_leads.json`
+  - `docs/market/public_corpus/garage_door_scenario_bank.md`
+  - `docs/agent_eval.md`
+
+Evidence:
+  - Eval fixture.
+  - Scenario-bank documentation.
+
+Market-Gate:
+  - The demo can show realistic behavior without pretending to have real leads.
+
+### T73: Public Knowledge Pack And Retrieval Eval
+
+Owner: codex
+Phase: 22
+Type: rag:quality
+Depends-On: T71, T72
+
+Objective: |
+  Turn the public corpus into a vertical knowledge pack and retrieval eval slice
+  for FAQ, service-area, booking, pricing-range, and unsupported-answer cases.
+
+Acceptance-Criteria:
+  - AC-1: Knowledge pack entries cite source URLs or mark assumptions.
+  - AC-2: Retrieval eval includes supported and unsupported questions.
+  - AC-3: Unsupported questions route to insufficient evidence or human review.
+
+Files:
+  - `seed/verticals/garage_door_repair/`
+  - `tests/eval/fixtures/retrieval_pilot_seed.json`
+  - `docs/retrieval_eval.md`
+
+Evidence:
+  - Retrieval eval update.
+  - Public knowledge pack.
+
+Market-Gate:
+  - Demo answers are grounded in approved public knowledge.
+
+### T74: Human-Approval Replay Harness
+
+Owner: codex
+Phase: 22
+Type: agent:quality tool:safety
+Depends-On: T72, T73
+
+Objective: |
+  Run the synthetic lead bank through the conversation policy with human
+  approval enabled and produce replay artifacts for response, extraction,
+  handoff, and no-send behavior.
+
+Acceptance-Criteria:
+  - AC-1: Replay output includes transcript, extracted fields, proposed reply,
+    evidence IDs, handoff reason, and send/no-send decision.
+  - AC-2: Unsafe, unsupported, and low-confidence cases never produce
+    autonomous customer-facing send.
+  - AC-3: Replay results are reproducible from committed demo fixtures.
+
+Files:
+  - `scripts/replay_demo_leads.py`
+  - `docs/market/demo_replays/`
+  - `tests/eval/test_demo_replay.py`
+
+Evidence:
+  - Replay report.
+  - Agent/tool eval updates.
+
+Market-Gate:
+  - The demo shows safety and operator trust, not only fast generated text.
+
+### T75: Public Demo Report Pack
+
+Owner: codex
+Phase: 22
+Type: report gtm
+Depends-On: T74
+
+Objective: |
+  Package the public vertical showcase into a clear report that can be shown in
+  manual conversations.
+
+Acceptance-Criteria:
+  - AC-1: Report includes vertical corpus summary, scenario coverage, replay
+    metrics, examples, safety boundaries, and missing real-pilot evidence.
+  - AC-2: Report avoids conversion lift, ROI, and paid-readiness claims.
+  - AC-3: Report states exactly what a real pilot would need to prove.
+
+Files:
+  - `docs/market/demo_report_garage_door_repair.md`
+  - `docs/market/demo_script.md`
+
+Evidence:
+  - Demo report.
+  - Updated demo script.
+
+Market-Gate:
+  - The operator has a showable artifact before asking for real lead data.
+
+### T76: First-10 Manual Outreach Target List
+
+Owner: human + codex
+Phase: 22
+Type: gtm research
+Depends-On: T75
+
+Objective: |
+  Create a manually reviewed first-10 target list and conversation plan for the
+  selected vertical.
+
+Acceptance-Criteria:
+  - AC-1: Target list cites public source pages and why each account is a fit.
+  - AC-2: Outreach asks for a narrow replay/pilot conversation, not broad system
+    access.
+  - AC-3: No automated outreach is executed by the product or agent.
+
+Files:
+  - `docs/market/first_10_targets.md`
+  - `docs/market/demo_script.md`
+  - `docs/market/pilot_terms.md`
+
+Evidence:
+  - First-10 list.
+  - Manual conversation script.
+
+Market-Gate:
+  - Solo operator knows who to contact and what concrete artifact to show.
+
+### T77: Solo Showcase Readiness Review
+
+Owner: human + codex
+Phase: 22
+Type: audit decision
+Depends-On: T75, T76
+
+Objective: |
+  Decide whether the public vertical showcase is ready for manual conversations
+  and whether to request real lead logs, run a concierge replay, or improve the
+  demo pack.
+
+Acceptance-Criteria:
+  - AC-1: Review cites corpus, scenario bank, replay artifacts, demo report, and
+    first-10 target list.
+  - AC-2: Review records no-go conditions and missing real-pilot evidence.
+  - AC-3: Review updates `docs/CODEX_PROMPT.md` with the next task.
+
+Files:
+  - `docs/audit/SOLO_SHOWCASE_READINESS_REVIEW.md`
+  - `docs/CODEX_PROMPT.md`
+
+Evidence:
+  - Readiness review.
+
+Market-Gate:
+  - The product moves to manual outreach only after the demo pack is coherent
+    and claim-safe.

@@ -1,7 +1,7 @@
 # Implementation Journal - Lead Response SLA Agent
 
 Version: 1.0
-Last updated: 2026-05-21
+Last updated: 2026-05-23
 Status: append-only
 
 This file records durable handoff context across agents and sessions. It is not the source of truth for architecture or policy.
@@ -24,6 +24,125 @@ This file records durable handoff context across agents and sessions. It is not 
 ---
 
 ## Entries
+
+### 2026-05-23 - T66 - First Pilot Tenant Launch Checklist
+
+- Scope: `docs/pilot/launch_checklist.md`, `docs/market/pilot_measurement_plan.md`, `docs/runbook.md`, `tests/unit/test_pilot_launch_docs.py`, `docs/CODEX_PROMPT.md`, `docs/EVIDENCE_INDEX.md`.
+- Why this work happened: T66 required a first real pilot tenant launch checklist covering setup, baseline metrics, human approval, fallback, and buyer signoff.
+- Decisions applied: first pilot starts with one approved inbound source, one approved outbound channel, and human approval for every outbound message.
+- Evidence collected: `.venv/bin/python -m pytest tests/unit/test_pilot_launch_docs.py tests/unit/test_market_docs.py -q --tb=short` -> 21 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ --tb=short` -> 255 passed, 26 skipped; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py scripts/replay_demo_leads.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py scripts/replay_demo_leads.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; checklist includes pre-launch, launch-day, first-week, rollback/fallback steps, human approval at launch, baseline metric capture before traffic, and buyer success/stop signoff.
+- Follow-ups: T67 is blocked until approved real pilot data exists.
+- Notes for next agent: do not synthesize T67 real-data evals from public/demo fixtures; wait for de-identified pilot transcripts, operator corrections, provider failures, and approval metadata.
+
+### 2026-05-23 - Phase 20 Review - Security, Privacy, and Compliance Readiness
+
+- Scope: T63-T65, `docs/audit/PHASE20_REVIEW.md`, `docs/audit/AUDIT_INDEX.md`, `docs/CODEX_PROMPT.md`, `docs/EVIDENCE_INDEX.md`.
+- Why this work happened: Phase 20 tasks completed and the orchestrator requires a phase-boundary review before continuing.
+- Decisions applied: continue to Phase 21 T66 because verification is green and no stop condition remains.
+- Evidence collected: `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ --tb=short` -> 251 passed, 26 skipped; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py scripts/replay_demo_leads.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py scripts/replay_demo_leads.py` -> passed.
+- Follow-ups: continue to T66 First Pilot Tenant Launch Checklist.
+- Notes for next agent: this was a same-session verification pass, not an independent review.
+
+### 2026-05-23 - T65 - Access Review and Production Admin Controls
+
+- Scope: `src/lead_sla_agent/operator/access_review.py`, `tests/integration/test_access_review.py`, `docs/runbook.md`, `docs/CODEX_PROMPT.md`, `docs/EVIDENCE_INDEX.md`.
+- Why this work happened: T65 required production admin access review procedures and role-gated controls.
+- Decisions applied: access review exports hash actor refs; privileged actions re-check current role/status; emergency access is bounded to 1-240 minutes and audited.
+- Evidence collected: `.venv/bin/python -m pytest tests/integration/test_access_review.py tests/integration/test_operator_auth_rbac.py -q --tb=short` -> 8 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ --tb=short` -> 251 passed, 26 skipped; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py scripts/replay_demo_leads.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py scripts/replay_demo_leads.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; report lists roles, last activity, and privileged actions without PII; emergency access is time-limited/audited; role downgrade/removal blocks privileged actions immediately; quarterly checklist is documented.
+- Follow-ups: complete Phase 20 review, then continue to T66.
+- Notes for next agent: wire `AccessReviewStore.authorize` into any new privileged admin route rather than trusting long-lived role claims alone.
+
+### 2026-05-23 - T64 - Privacy, Retention, and Customer Data Terms
+
+- Scope: `docs/legal/privacy.md`, `docs/legal/dpa_notes.md`, `docs/runbook.md`, `src/lead_sla_agent/operator/data_admin.py`, `tests/unit/test_privacy_docs.py`, `tests/integration/test_data_retention.py`, `tests/integration/test_data_export_delete.py`, `docs/CODEX_PROMPT.md`, `docs/EVIDENCE_INDEX.md`.
+- Why this work happened: user approved resuming T64 customer-facing privacy/legal/retention/subprocessor wording after Phase 22 completed.
+- Decisions applied: v1 customer delete remains anonymization, not hard deletion; retention enforcement scrubs expired PII while preserving operational counts and append-only audit records.
+- Evidence collected: `.venv/bin/python -m pytest tests/unit/test_privacy_docs.py tests/integration/test_data_export_delete.py tests/integration/test_data_retention.py -q --tb=short` -> 10 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ --tb=short` -> 247 passed, 26 skipped; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py scripts/replay_demo_leads.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py scripts/replay_demo_leads.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; privacy docs explain collected data, purpose, retention, export/delete behavior, and subprocessors; runbook documents retention enforcement; tests verify anonymization/export/retention behavior and block unsupported hard-delete promises.
+- Follow-ups: continue to T65 Access Review and Production Admin Controls.
+- Notes for next agent: customer-facing docs intentionally avoid hard deletion, zero retention, SOC 2/HIPAA/GDPR certification, autonomous send, and unspecified subprocessor promises.
+
+### 2026-05-23 - T77 - Solo Showcase Readiness Review
+
+- Scope: `docs/audit/SOLO_SHOWCASE_READINESS_REVIEW.md`, `docs/audit/AUDIT_INDEX.md`, `tests/unit/test_market_docs.py`, `docs/CODEX_PROMPT.md`, `docs/EVIDENCE_INDEX.md`.
+- Why this work happened: T77 required deciding whether the public vertical showcase is ready for manual conversations and recording no-go conditions plus missing real-pilot evidence.
+- Decisions applied: `D-012`, `docs/market/open_source_research_protocol.md`, and Phase 22 readiness gates.
+- Evidence collected: `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ --tb=short` -> 241 passed, 26 skipped; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py scripts/replay_demo_leads.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py scripts/replay_demo_leads.py` -> passed.
+- Verification pass: same-session verification found the Phase 22 public showcase ready for founder-led manual conversations, not autonomous send, paid production, conversion claims, ROI claims, or real customer data intake.
+- Follow-ups: no active Codex implementation task; next non-Codex step is founder-led manual outreach. T64 remains deferred pending human legal/privacy approval.
+- Notes for next agent: do not resume T64 or customer-facing privacy/terms work without human approval.
+
+### 2026-05-23 - T76 - First-10 Manual Outreach Target List
+
+- Scope: `docs/market/first_10_targets.md`, `docs/market/demo_script.md`, `docs/market/pilot_terms.md`, `tests/unit/test_market_docs.py`, `docs/CODEX_PROMPT.md`, `docs/EVIDENCE_INDEX.md`.
+- Why this work happened: T76 required a manually reviewed first-10 target list and conversation plan for the selected vertical.
+- Decisions applied: `D-012` and `docs/market/open_source_research_protocol.md`.
+- Evidence collected: `.venv/bin/python -m pytest tests/unit/test_market_docs.py -q --tb=short` -> 16 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ --tb=short` -> 240 passed, 26 skipped; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py scripts/replay_demo_leads.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py scripts/replay_demo_leads.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; target list cites public source pages and `GD-PUB-*` records, asks for a narrow replay/pilot conversation, and explicitly forbids automated outreach.
+- Follow-ups: continue to T77 Solo Showcase Readiness Review.
+- Notes for next agent: pre-pilot outreach must stay manual and must not request private lead data on first touch.
+
+### 2026-05-23 - T75 - Public Demo Report Pack
+
+- Scope: `docs/market/demo_report_garage_door_repair.md`, `docs/market/demo_script.md`, `tests/unit/test_market_docs.py`, `docs/CODEX_PROMPT.md`, `docs/EVIDENCE_INDEX.md`.
+- Why this work happened: T75 required packaging the public vertical showcase into a showable report for manual conversations.
+- Decisions applied: `D-012` and `docs/market/open_source_research_protocol.md`.
+- Evidence collected: `.venv/bin/python -m pytest tests/unit/test_market_docs.py -q --tb=short` -> 15 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ --tb=short` -> 239 passed, 26 skipped; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py scripts/replay_demo_leads.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py scripts/replay_demo_leads.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; report includes corpus summary, scenario coverage, replay metrics, examples, safety boundaries, missing real-pilot evidence, and proof plan while blocking conversion, ROI, autonomous-send, and paid-readiness claims.
+- Follow-ups: continue to T76 First-10 Manual Outreach Target List.
+- Notes for next agent: demo script now points to the report and asks for a narrow real pilot proof conversation.
+
+### 2026-05-23 - T74 - Human-Approval Replay Harness
+
+- Scope: `scripts/replay_demo_leads.py`, `docs/market/demo_replays/garage_door_replay_report.json`, `docs/market/demo_replays/garage_door_replay_report.md`, `tests/eval/test_demo_replay.py`, `docs/agent_eval.md`, `docs/tool_eval.md`, `tests/eval/test_agent_eval.py`, `tests/eval/test_tool_eval.py`, `docs/CODEX_PROMPT.md`, `docs/EVIDENCE_INDEX.md`.
+- Why this work happened: T74 required replaying the synthetic lead bank with human approval enabled and producing reproducible replay artifacts.
+- Decisions applied: `D-012`, `docs/market/open_source_research_protocol.md`, and `conversation-policy-v1` boundaries.
+- Evidence collected: `.venv/bin/python -m pytest tests/eval/test_demo_replay.py tests/eval/test_agent_eval.py tests/eval/test_tool_eval.py -q --tb=short` -> 10 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ --tb=short` -> 237 passed, 26 skipped; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py scripts/replay_demo_leads.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py scripts/replay_demo_leads.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; each replay includes transcript, extracted fields, proposed-reply field, evidence IDs, handoff reason, and send/no-send decision; unsafe/unsupported cases have zero autonomous sends.
+- Follow-ups: continue to T75 Public Demo Report Pack.
+- Notes for next agent: replay script is deterministic and intentionally does not call messaging, booking, CRM, calendar, LLM, retrieval, or provider adapters.
+
+### 2026-05-23 - T73 - Public Knowledge Pack And Retrieval Eval
+
+- Scope: `seed/verticals/garage_door_repair/corpus.json`, `seed/verticals/garage_door_repair/retrieval_eval.json`, `tests/integration/test_vertical_pack.py`, `docs/retrieval_eval.md`, `tests/eval/test_retrieval_eval.py`, `docs/CODEX_PROMPT.md`, `docs/EVIDENCE_INDEX.md`.
+- Why this work happened: T73 required turning the public garage-door corpus into source-cited knowledge-pack entries and a retrieval eval slice.
+- Decisions applied: `D-012` and `docs/market/open_source_research_protocol.md`.
+- Evidence collected: `.venv/bin/python -m pytest tests/integration/test_vertical_pack.py tests/eval/test_retrieval_eval.py -q --tb=short` -> 9 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ --tb=short` -> 234 passed, 26 skipped; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; public knowledge-pack documents include source record IDs and URLs, retrieval eval includes supported and unsupported public questions, and unsupported public claims route to insufficient evidence or human review.
+- Follow-ups: continue to T74 Human-Approval Replay Harness.
+- Notes for next agent: public-source knowledge is demo/seed evidence only; tenant-specific service areas, pricing, and booking commitments still require approved tenant policy.
+
+### 2026-05-23 - T72 - Evidence-Derived Synthetic Lead Scenario Bank
+
+- Scope: `tests/eval/fixtures/garage_door_leads.json`, `docs/market/public_corpus/garage_door_scenario_bank.md`, `docs/agent_eval.md`, `tests/eval/test_agent_eval.py`, `docs/CODEX_PROMPT.md`, `docs/EVIDENCE_INDEX.md`.
+- Why this work happened: T72 required at least 30 synthetic inbound lead scenarios derived from public corpus evidence.
+- Decisions applied: `D-012` and `docs/market/open_source_research_protocol.md`.
+- Evidence collected: `.venv/bin/python -m pytest tests/eval/test_agent_eval.py -q --tb=short` -> 5 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ --tb=short` -> 233 passed, 26 skipped; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; scenario fixture contains 30 synthetic demo leads with cited public source IDs or assumptions, expected extracted fields, next action, handoff reason, and unsafe/unsupported expectation; raw contact PII scan passes.
+- Follow-ups: continue to T73 Public Knowledge Pack And Retrieval Eval.
+- Notes for next agent: the scenario bank is eval/demo material only and cannot support conversion, ROI, autonomous-send, or paid-readiness claims.
+
+### 2026-05-23 - T71 - Garage Door Public Corpus And Source Register
+
+- Scope: `docs/market/public_corpus/garage_door_repair_source_register.md`, `seed/verticals/garage_door_repair/public_corpus.json`, `tests/unit/test_market_docs.py`, `docs/retrieval_eval.md`, `tests/eval/test_retrieval_eval.py`, `docs/CODEX_PROMPT.md`, `docs/EVIDENCE_INDEX.md`.
+- Why this work happened: T71 required a public source register and seed corpus for the DFW emergency garage door repair wedge.
+- Decisions applied: `D-012` and `docs/market/open_source_research_protocol.md`.
+- Evidence collected: `.venv/bin/python -m pytest tests/unit/test_market_docs.py tests/eval/test_retrieval_eval.py -q --tb=short` -> 18 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ --tb=short` -> 229 passed, 26 skipped; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; source register contains 35 public records with required fields, no private contact data, and no unsupported ROI/conversion claims; public corpus JSON links source IDs and keeps approved retrieval corpus unchanged until T73.
+- Follow-ups: continue to T72 Evidence-Derived Synthetic Lead Scenario Bank.
+- Notes for next agent: T72 scenarios should cite `GD-PUB-*` source IDs or explicit assumptions and remain synthetic demo data.
+
+### 2026-05-23 - T70 - Public Vertical Research Protocol
+
+- Scope: `docs/market/open_source_research_protocol.md`, `docs/market/pilot_vertical.md`, `docs/market/demo_script.md`, `tests/unit/test_market_docs.py`, `docs/CODEX_PROMPT.md`, `docs/EVIDENCE_INDEX.md`.
+- Why this work happened: T70 required a public-source protocol so the solo demo-pack phase can continue without private customer access.
+- Decisions applied: `D-012`.
+- Evidence collected: `.venv/bin/python -m pytest tests/unit/test_market_docs.py -q --tb=short` -> 11 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ --tb=short` -> 227 passed, 26 skipped; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py` -> passed.
+- Verification pass: same-session verification found no P0/P1 findings; protocol lists allowed/forbidden sources, required source-register fields, and claim boundaries; pilot/demo docs link the protocol; conversion, ROI, autonomous-send, and paid-readiness claims remain blocked until real pilot evidence exists.
+- Follow-ups: continue to T71 Garage Door Public Corpus And Source Register.
+- Notes for next agent: source-register rows must include `pii_contact_handling`; public research can support demo artifacts but cannot prove customer ROI or autonomous-send safety.
 
 ### 2026-05-21 - T63 - Threat Model and Abuse Protection
 
@@ -798,6 +917,15 @@ This file records durable handoff context across agents and sessions. It is not 
 - Evidence collected: `.venv/bin/python -m pytest tests/unit/test_db_models.py tests/unit/test_tenant_context.py tests/unit/test_sql_safety.py -q --tb=short` -> 3 passed; `.venv/bin/python -m pytest tests/ -q --tb=short` -> 12 passed; `.venv/bin/ruff check src/lead_sla_agent tests` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests` -> passed; `.venv/bin/ruff check alembic && .venv/bin/ruff format --check alembic` -> passed
 - Follow-ups: continue to T05 Observability and Audit Baseline
 - Notes for next agent: tenant-scoped repository reads call `SET LOCAL app.tenant_id = :tenant_id` before query execution; no live database is required for the T04 tests.
+
+### 2026-05-25 - T67a - Pre-Pilot Evidence Package
+
+- Scope: `tests/eval/fixtures/garage_door_leads.json`, `scripts/replay_demo_leads.py`, `docs/market/pre_pilot_evidence_plan.md`, `docs/market/pre_pilot_evidence_report.md`, `docs/market/pre_pilot_demo_script.md`, `docs/market/expert_review_rubric.md`, `docs/market/baseline_comparison.md`, `docs/market/failure_mode_replay.md`, `docs/market/demo_replays/`, `tests/eval/test_pre_pilot_replay.py`, `tests/unit/test_pre_pilot_docs.py`, `docs/agent_eval.md`, `docs/tool_eval.md`
+- Why this work happened: T67 real-data eval is blocked until approved real pilot artifacts exist, so the project needed a claim-safe alternative that proves controlled pilot readiness without pretending to have live production data.
+- Decisions applied: keep T67 blocked for real pilot transcripts/operator corrections/provider failures; use T67a only for controlled public/synthetic evidence; require human approval for every replay.
+- Evidence collected: `.venv/bin/python scripts/replay_demo_leads.py` regenerated pre-pilot, baseline, and failure replay artifacts; `.venv/bin/python -m pytest tests/eval/test_pre_pilot_replay.py tests/unit/test_pre_pilot_docs.py tests/eval/test_demo_replay.py tests/unit/test_market_docs.py tests/eval/test_agent_eval.py tests/eval/test_tool_eval.py --tb=short` -> 37 passed; `DATABASE_URL=postgresql+asyncpg://lead_test:lead_test@localhost:55432/lead_sla_test REDIS_URL=redis://localhost:6380/0 .venv/bin/python -m pytest tests/ --tb=short` -> 265 passed, 26 skipped; `.venv/bin/ruff check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py scripts/replay_demo_leads.py` -> passed; `.venv/bin/ruff format --check src/lead_sla_agent tests alembic scripts/onboard_tenant.py scripts/reset_demo_tenant.py scripts/smoke_test.py scripts/rollback_check.py scripts/replay_demo_leads.py` -> passed.
+- Follow-ups: collect external expert review using `docs/market/expert_review_rubric.md`; do not resume T67 until a human supplies or approves de-identified real pilot artifacts.
+- Notes for next agent: pre-pilot evidence may be used for founder-led buyer conversations and shadow-mode pilot asks, but must not be used to claim production ROI, conversion lift, live-client proof, autonomous-send safety, or paid production readiness.
 
 ### 2026-05-19 - T03 - First Smoke Tests
 
