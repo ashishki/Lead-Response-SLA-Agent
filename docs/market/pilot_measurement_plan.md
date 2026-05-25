@@ -73,3 +73,10 @@ Pivot or stop:
 - Buyer names the person responsible for weekly outcome labels.
 - Operator confirms no raw customer PII will be pasted into report notes.
 - Buyer agrees that payment/expansion decision will use this metric set.
+- Buyer signs `docs/pilot/launch_checklist.md` before traffic is routed.
+- Baseline metrics must be captured before launch: response time p50/p95,
+  missed lead rate, booked jobs, qualified handoffs, human-review workload,
+  lead source mix, provider failure baseline, and unsafe automation baseline.
+- Human approval remains required for every outbound message at launch.
+- Stop criteria must be accepted before launch, including unsafe reply risk,
+  missing baseline data, unmanageable review workload, and provider failure.

@@ -87,6 +87,25 @@ The checklist must fit within one working day and cover:
 
 Launch gate: do not enable production traffic until provider sandbox passes, the 10-question knowledge validation passes, and an operator approves/edits/sends a test review task.
 
+## First Pilot Launch
+
+Use `docs/pilot/launch_checklist.md` for the first real pilot tenant. Do not
+route real traffic until the checklist has buyer signoff for success criteria,
+stop criteria, baseline metrics, human approval for every outbound message, and
+rollback/fallback ownership.
+
+Launch safety rules:
+
+- one approved inbound source and one approved outbound channel only;
+- human approval required for every outbound message at launch;
+- baseline metrics captured before traffic is routed;
+- buyer-approved service, pricing, booking, safety, refund, warranty, and
+  commercial escalation boundaries loaded before launch;
+- provider sandbox, `/health`, PostgreSQL, Redis, operator auth, metrics,
+  alerting, and unsafe-message handoff smoke checks pass;
+- fallback path can pause agent replies and route leads to existing human
+  dispatch workflow.
+
 ## Live Messaging Providers
 
 The pilot outbound provider matrix is:
@@ -168,6 +187,56 @@ Incident debugging by correlation ID:
 ## Operator Review
 
 Operators use the JSON operator API to list human-review tasks, inspect transcript references, review evidence IDs, approve or edit proposed replies, and apply outcome labels. Unsafe message categories and unsupported retrieval results must stay in the review queue until an operator approves the final action.
+
+## Production Admin Access Review
+
+Access review schema version: `access-review-v1`
+
+Production access records must include tenant ID, actor ref, role, status, last
+activity time, privileged actions, and emergency access expiry when present.
+Access review exports must use actor hashes and must not include raw names,
+emails, phone numbers, customer IDs, lead IDs, transcript text, provider user
+IDs, or provider message IDs.
+
+Roles:
+
+| Role | Privileged actions |
+|---|---|
+| owner | access review export, emergency access grant/revoke, dangerous tenant config changes, operator role updates/removals, review approval/no-send, outcome labels, analytics, knowledge reindex |
+| operator | review approval/no-send, outcome labels, analytics, knowledge reindex |
+| viewer | analytics read only |
+| emergency_operator | time-limited operator permissions for incident response |
+
+Emergency access:
+
+1. Only an owner can grant emergency access.
+2. Emergency access must expire within 240 minutes.
+3. Grant events must record actor hash, target actor hash, expiry, action, policy
+   version, and timestamp.
+4. Expired emergency access must fail closed before any privileged action.
+5. Revoke or downgrade the account after the incident and include it in the next
+   access review.
+
+Role downgrade/removal:
+
+1. Downgrade or remove the account in the access-control store before relying on
+   token expiry.
+2. Re-check current role/status before privileged actions such as approval,
+   no-send, dangerous config update, access review export, or emergency grant.
+3. Removed accounts must have no privileged actions.
+4. Downgraded accounts must immediately lose actions outside the new role.
+
+Quarterly access review checklist:
+
+1. Export the `access-review-v1` report for each production tenant.
+2. Confirm every owner/operator/viewer still needs access.
+3. Confirm last activity is expected for the role.
+4. Confirm no emergency access is active outside an incident.
+5. Remove stale accounts and downgrade over-privileged accounts.
+6. Confirm privileged action lists match the role table above.
+7. Store the reviewed report with PII-free actor hashes only.
+8. Do not include raw names, emails, phone numbers, lead IDs, transcript text, or
+   provider IDs in the review artifact.
 
 ## Rollback
 
@@ -263,6 +332,7 @@ Tenant export includes:
 - `audit_events`
 - `outcomes`
 - `review_tasks`
+- `exports`
 - `retention_policy`
 - `pii_fields`
 
@@ -274,6 +344,7 @@ PII fields identified in the export schema:
 | `transcripts` | `provider_message_id` |
 | `audit_events` | `event_metadata` may contain hashed identifiers or redacted previews |
 | `review_tasks` | `payload` may contain lead/contact context and must be scrubbed on anonymization |
+| `exports` | `storage_ref`, `download_url` |
 
 Delete/anonymize procedure:
 
@@ -283,6 +354,32 @@ Delete/anonymize procedure:
 4. Confirm lead contact fields are redacted, transcript provider IDs are removed, and review payloads are scrubbed.
 5. Confirm an audit event named `tenant_data_anonymized` records actor ID, timestamp, reason, retention policy, and affected row counts.
 6. Keep aggregate metrics and anonymized audit records for operational reporting unless the customer contract requires full deletion.
+
+Retention enforcement procedure:
+
+1. Confirm the tenant retention policy before running retention. Default pilot
+   policy is `retain_days=90`, `mode=anonymize`; customer contracts may set a
+   shorter value.
+2. Run the retention operation for the tenant from an authorized operator/admin
+   context. In code, this is represented by
+   `TenantDataAdmin.apply_retention_policy(...)`; production repository-backed
+   execution must preserve the same field behavior.
+3. Confirm expired leads have contact name, email, and phone redacted.
+4. Confirm expired transcript provider message IDs and previews are removed or
+   redacted.
+5. Confirm expired review-task payloads and audit event metadata are scrubbed
+   while append-only audit records remain present.
+6. Confirm expired export artifacts have `status=expired`, `storage_ref=None`,
+   and `download_url=None`.
+7. Confirm an audit event named `tenant_retention_applied` records actor ID,
+   cutoff, retention policy, and affected row counts.
+8. Run `tests/integration/test_data_retention.py` before representing retention
+   behavior in customer-facing terms.
+
+Customer-facing privacy and DPA notes live in `docs/legal/privacy.md` and
+`docs/legal/dpa_notes.md`. Do not promise hard deletion, zero retention, SOC 2,
+HIPAA, GDPR certification, autonomous send, or unspecified subprocessors unless
+the product and contract have been updated to support those promises.
 
 ## Incident Response
 

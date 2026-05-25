@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from lead_sla_agent.audit.events import AUDIT_EVENT_POLICY_VERSION
@@ -15,6 +15,7 @@ PII_FIELDS_BY_ENTITY = {
     "transcripts": ["provider_message_id"],
     "audit_events": ["event_metadata"],
     "review_tasks": ["payload"],
+    "exports": ["storage_ref", "download_url"],
 }
 
 
@@ -35,6 +36,7 @@ class TenantDataAdmin:
         audit_events: list[dict[str, Any]] | None = None,
         outcomes: list[dict[str, Any]] | None = None,
         review_tasks: list[dict[str, Any]] | None = None,
+        exports: list[dict[str, Any]] | None = None,
     ) -> None:
         self.leads = leads if leads is not None else []
         self.conversations = conversations if conversations is not None else []
@@ -42,6 +44,7 @@ class TenantDataAdmin:
         self.audit_events = audit_events if audit_events is not None else []
         self.outcomes = outcomes if outcomes is not None else []
         self.review_tasks = review_tasks if review_tasks is not None else []
+        self.exports = exports if exports is not None else []
         self.retention_policies: dict[str, TenantRetentionPolicy] = {}
 
     def set_retention_policy(self, policy: TenantRetentionPolicy) -> TenantRetentionPolicy:
@@ -66,6 +69,7 @@ class TenantDataAdmin:
             "audit_events": _filter_tenant_rows(self.audit_events, tenant_id),
             "outcomes": _filter_tenant_rows(self.outcomes, tenant_id),
             "review_tasks": _filter_tenant_rows(self.review_tasks, tenant_id),
+            "exports": _filter_tenant_rows(self.exports, tenant_id),
         }
 
     def anonymize_tenant_data(
@@ -103,6 +107,84 @@ class TenantDataAdmin:
         self.audit_events.append(audit_record)
         return audit_record
 
+    def apply_retention_policy(
+        self,
+        tenant_id: str,
+        actor_id: str,
+        now: datetime | None = None,
+    ) -> dict[str, Any]:
+        policy = self.get_retention_policy(tenant_id)
+        if policy.mode != "anonymize":
+            raise ValueError("unsupported retention mode")
+
+        applied_at = now or datetime.now(tz=UTC)
+        cutoff = applied_at - timedelta(days=policy.retain_days)
+        applied_at_value = applied_at.isoformat()
+        counts = {
+            "leads": _anonymize_expired_rows(
+                self.leads,
+                tenant_id,
+                cutoff,
+                _anonymize_lead,
+            ),
+            "conversations": _mark_expired_rows_anonymized(
+                self.conversations,
+                tenant_id,
+                cutoff,
+                applied_at_value,
+            ),
+            "transcripts": _anonymize_expired_rows(
+                self.transcripts,
+                tenant_id,
+                cutoff,
+                _anonymize_transcript,
+            ),
+            "outcomes": _mark_expired_rows_anonymized(
+                self.outcomes,
+                tenant_id,
+                cutoff,
+                applied_at_value,
+            ),
+            "review_tasks": _anonymize_expired_rows(
+                self.review_tasks,
+                tenant_id,
+                cutoff,
+                _anonymize_review_task,
+            ),
+            "audit_events": _scrub_expired_audit_events(
+                self.audit_events,
+                tenant_id,
+                cutoff,
+                applied_at_value,
+            ),
+            "exports": _expire_export_records(
+                self.exports,
+                tenant_id,
+                cutoff,
+                applied_at_value,
+            ),
+        }
+        audit_record = {
+            "tenant_id": tenant_id,
+            "event_type": "tenant_retention_applied",
+            "actor_type": "operator",
+            "actor_id": actor_id,
+            "actor_ref": "operator:" + actor_id,
+            "action": "tenant_data.retention_applied",
+            "resource_type": "tenant",
+            "resource_id": tenant_id,
+            "result": "success",
+            "policy_version": AUDIT_EVENT_POLICY_VERSION,
+            "created_at": applied_at_value,
+            "event_metadata": {
+                "retention_policy": policy.__dict__,
+                "cutoff_at": cutoff.isoformat(),
+                "counts": counts,
+            },
+        }
+        self.audit_events.append(audit_record)
+        return audit_record
+
 
 def _filter_tenant_rows(rows: list[dict[str, Any]], tenant_id: str) -> list[dict[str, Any]]:
     return [dict(row) for row in rows if row.get("tenant_id") == tenant_id]
@@ -122,6 +204,21 @@ def _anonymize_rows(
     return count
 
 
+def _anonymize_expired_rows(
+    rows: list[dict[str, Any]],
+    tenant_id: str,
+    cutoff: datetime,
+    anonymizer: Any,
+) -> int:
+    count = 0
+    for row in rows:
+        if row.get("tenant_id") != tenant_id or not _is_expired(row, cutoff):
+            continue
+        anonymizer(row)
+        count += 1
+    return count
+
+
 def _mark_rows_anonymized(rows: list[dict[str, Any]], tenant_id: str, anonymized_at: str) -> int:
     count = 0
     for row in rows:
@@ -129,6 +226,67 @@ def _mark_rows_anonymized(rows: list[dict[str, Any]], tenant_id: str, anonymized
             row["anonymized_at"] = anonymized_at
             count += 1
     return count
+
+
+def _mark_expired_rows_anonymized(
+    rows: list[dict[str, Any]],
+    tenant_id: str,
+    cutoff: datetime,
+    anonymized_at: str,
+) -> int:
+    count = 0
+    for row in rows:
+        if row.get("tenant_id") == tenant_id and _is_expired(row, cutoff):
+            row["anonymized_at"] = anonymized_at
+            count += 1
+    return count
+
+
+def _scrub_expired_audit_events(
+    rows: list[dict[str, Any]],
+    tenant_id: str,
+    cutoff: datetime,
+    scrubbed_at: str,
+) -> int:
+    count = 0
+    for row in rows:
+        if row.get("tenant_id") != tenant_id or not _is_expired(row, cutoff):
+            continue
+        row["event_metadata"] = scrub_pii(row.get("event_metadata", {}))
+        row["retention_scrubbed_at"] = scrubbed_at
+        count += 1
+    return count
+
+
+def _expire_export_records(
+    rows: list[dict[str, Any]],
+    tenant_id: str,
+    cutoff: datetime,
+    expired_at: str,
+) -> int:
+    count = 0
+    for row in rows:
+        if row.get("tenant_id") != tenant_id or not _is_expired(row, cutoff):
+            continue
+        row["status"] = "expired"
+        row["storage_ref"] = None
+        row["download_url"] = None
+        row["expired_at"] = expired_at
+        count += 1
+    return count
+
+
+def _is_expired(row: dict[str, Any], cutoff: datetime) -> bool:
+    value = row.get("created_at") or row.get("updated_at")
+    if not value:
+        return False
+    if isinstance(value, datetime):
+        created_at = value
+    else:
+        created_at = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    if created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=UTC)
+    return created_at < cutoff
 
 
 def _anonymize_lead(row: dict[str, Any]) -> None:
