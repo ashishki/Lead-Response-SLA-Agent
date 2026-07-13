@@ -1,0 +1,92 @@
+name: Reproducible reference defect
+description: Report a bounded, reproducible defect in the paused reference implementation.
+title: "[reference-defect] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This repository is a paused, fixture-backed reference. The form is not a hosted-product roadmap. Use only synthetic or sanitized inputs; do not attach real leads, contact details, tenant exports, provider payloads, credentials, tokens, `.env` files, or unsanitized logs.
+  - type: input
+    id: revision
+    attributes:
+      label: Exact repository revision
+      description: Full 40-character commit SHA, or annotated tag plus its peeled commit.
+      placeholder: 0123456789abcdef0123456789abcdef01234567
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Reference surface
+      options:
+        - 50-scenario deterministic replay
+        - Unit-test contract
+        - PostgreSQL/Redis integration contract
+        - Eval gate
+        - RLS or tenant-context boundary
+        - Human-approval or no-send boundary
+        - Fake/provider adapter contract
+        - Documentation or evidence manifest
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, architecture, Python version, database/Redis versions if used, and install command.
+      placeholder: |
+        OS/architecture:
+        python --version:
+        PostgreSQL/Redis (if used):
+        install command:
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal credential-free reproduction
+      description: Use repository fixtures or a new synthetic input and include the exit code.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed sanitized result
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected bounded result
+      description: State the expected checked-in contract without asserting production, customer, conversion, or operator outcomes.
+    validations:
+      required: true
+  - type: dropdown
+    id: evidence_boundary
+    attributes:
+      label: Furthest boundary actually exercised
+      options:
+        - Static documentation or manifest inspection
+        - Unit test with synthetic input
+        - Deterministic 50-scenario replay
+        - Local integration test with disposable PostgreSQL/Redis
+        - Fake or sandbox provider adapter
+        - Live provider or operator-owned flow (do not attach its data)
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Privacy and claim checks
+      options:
+        - label: I reproduced from a clean checkout at the exact revision above.
+          required: true
+        - label: The report contains no real lead/contact data, tenant export, provider payload, credentials, tokens, `.env` files, or unsanitized logs.
+          required: true
+        - label: I am not interpreting fixture, fake-provider, sandbox, or local integration behavior as production reliability, customer impact, conversion lift, autonomous-send safety, or external adoption.
+          required: true
+        - label: I understand this paused repository does not accept generic feature or hosted-product roadmap requests.
+          required: true

@@ -35,6 +35,16 @@ dependency of the reliability lab, and does not transfer its lead/tenant domain
 assumptions into Runtime Grid, Workflow Studio, or the Playbook. The canonical
 portfolio role and resume gate are in [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md).
 
+## Report a reference defect
+
+This repository is paused, so its public issue surface is limited to a
+[reproducible defect in the checked-in reference](https://github.com/ashishki/Lead-Response-SLA-Agent/issues/new?template=reproducible-bug.yml).
+The form requires an exact revision, credential-free command, sanitized output,
+and the furthest fixture/test boundary actually exercised. It is not a feature
+roadmap or a request for access to a live lead flow. Do not attach lead/contact
+data, provider payloads, credentials, tenant exports, or unsanitized logs.
+Suspected vulnerabilities follow [SECURITY.md](SECURITY.md), not the public form.
+
 ## Цель проекта
 
 Собрать проверяемый pilot workflow, который принимает входящий лид из формы, мессенджера, email или webhook, быстро отвечает клиенту, квалифицирует запрос, отвечает только из утвержденной базы знаний, записывает структурированные данные в CRM/хранилище и передает рискованные случаи человеку.
