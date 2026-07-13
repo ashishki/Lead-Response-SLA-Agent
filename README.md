@@ -1,8 +1,39 @@
 # Lead Response SLA Agent
 
-AI-ассистент для быстрого и безопасного ответа на входящие лиды в сервисном бизнесе, где скорость реакции влияет на конверсию.
+Paused reference workload for a tenant-scoped, human-approved lead-response
+pipeline. It demonstrates intake, retrieval boundaries, deterministic policy,
+handoff, audit, and provider-adapter contracts without using live lead data.
 
-Статус: paused reference implementation. Проект не развивается активно без реального lead flow / CRM / оператора. Roadmap: `docs/PROJECT_PLAN.md`.
+Статус: paused reference implementation. Текущие public artifacts используют
+только 50 synthetic garage-door scenarios и injectable/fake provider paths.
+Реального pilot tenant, live CRM/lead flow, operator outcome, conversion lift,
+production deployment или autonomous-send evidence в репозитории нет. Проект
+не развивается как продукт без реального lead flow, CRM и оператора.
+
+## Five-minute reference path
+
+```bash
+python -m venv .venv
+. .venv/bin/activate
+python -m pip install -r requirements-dev.txt -e .
+python scripts/replay_demo_leads.py --output-dir /tmp/lead-sla-replay
+diff -qr docs/market/demo_replays /tmp/lead-sla-replay
+python -m pytest tests/eval/test_pre_pilot_replay.py \
+  tests/unit/test_reference_evidence_manifest.py -q --tb=short
+```
+
+The run is credential-free and deterministic. Start with
+[`docs/REFERENCE_EVIDENCE_LEDGER.md`](docs/REFERENCE_EVIDENCE_LEDGER.md) for
+checksums, claims, and limitations. A passing replay proves only fixture-level
+contract behavior.
+
+## Portfolio relationship
+
+This repository is an independent reference workload and possible adapter
+example for Eval Ground Truth Lab. It is not a flagship, is not a runtime
+dependency of the reliability lab, and does not transfer its lead/tenant domain
+assumptions into Runtime Grid, Workflow Studio, or the Playbook. The canonical
+portfolio role and resume gate are in [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md).
 
 ## Цель проекта
 
@@ -125,16 +156,12 @@ AI-ассистент для быстрого и безопасного отве
 
 ## Текущий статус
 
-Phase 1 package готов. Архитектура, task graph, implementation contract, eval artifacts и Phase 1 audit находятся в `docs/`.
-
-Активная execution model:
-
-- Codex-only.
-- Без Claude runtime.
-- Без вызова `codex exec` изнутри Codex.
-- Разработка идет nonstop loop: Codex проходит задачи и фазы подряд, не останавливаясь на чистых phase boundaries.
-- Остановка допускается только при blocker/stop condition: P0/P1, failing checks, eval regression, architecture/runtime/security change, missing evidence или явная команда остановиться.
-- Реализация начинается с `T01: Project Skeleton` из `docs/tasks.md`.
+Implementation task history сохранена в `docs/`, но продуктовый gate закрыт.
+Подтверждены только synthetic/fixture contracts: human approval требуется во
+всех 50 replay cases, а семь injected failure cases остаются no-send handoffs.
+Это не измерение реального reliability или business outcome. Следующая
+разработка допустима только после появления consented operator-owned flow,
+baseline и privacy-reviewed evaluation material.
 
 ## Ключевые документы
 
@@ -146,3 +173,5 @@ Phase 1 package готов. Архитектура, task graph, implementation c
 - `docs/tool_eval.md` - tool-use eval gate.
 - `docs/agent_eval.md` - bounded agent loop eval gate.
 - `docs/RAG_REFERENCE.md` - reference patterns из Dream Motif Interpreter.
+- `docs/REFERENCE_EVIDENCE_LEDGER.md` - воспроизводимый reference evidence и
+  claim boundaries.

@@ -1,0 +1,46 @@
+{
+  "artifacts": [
+    {
+      "path": "tests/eval/fixtures/garage_door_leads.json",
+      "role": "synthetic_input",
+      "sha256": "129f748ef6fd4253a7842620a9c2830ca767c18e80edb6e7751a418e7173a67a"
+    },
+    {
+      "path": "scripts/replay_demo_leads.py",
+      "role": "deterministic_generator",
+      "sha256": "010f7a124bd81cfa406cb9a1397c52b700a4d4e5e05881a64008e995473b0b04"
+    },
+    {
+      "path": "docs/market/demo_replays/pre_pilot_replay_report.json",
+      "role": "synthetic_policy_replay",
+      "sha256": "4b9d2a8652638ee8149b429d15ec76f50eaed6ab0d6831b2ae4e528e41deb89d"
+    },
+    {
+      "path": "docs/market/demo_replays/baseline_comparison_report.json",
+      "role": "self_authored_controlled_baseline",
+      "sha256": "07d601a87e393bd3bdaca55b11ae76c82adac61bc76b999b7024bc2a43dc5ea1"
+    },
+    {
+      "path": "docs/market/demo_replays/failure_mode_replay_report.json",
+      "role": "injected_failure_replay",
+      "sha256": "361fc64a1e444d030fcacea25a3e145694d6868dc911c3c07c928379575f461b"
+    }
+  ],
+  "claim_boundary": {
+    "autonomous_send_safety_proven": false,
+    "conversion_lift_proven": false,
+    "live_client_data_used": false,
+    "paid_pilot_readiness_proven": false,
+    "production_reliability_proven": false,
+    "production_roi_proven": false
+  },
+  "data_classification": "synthetic_fixture_only",
+  "observed_fixture_summary": {
+    "failure_case_count": 7,
+    "human_approval_required_count": 50,
+    "scenario_count": 50,
+    "unsafe_autonomous_send_count": 0
+  },
+  "schema_version": "lead-sla-reference-evidence-v1",
+  "source_revision": "7fa6ad2d2ec188c83b1e696f6ea232562811eac1"
+}
