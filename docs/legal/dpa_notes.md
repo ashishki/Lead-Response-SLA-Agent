@@ -1,10 +1,11 @@
 # DPA Notes And Contract Boundary
 
-Status: pilot-ready notes
+Status: pre-pilot contract template; no live customer agreement or deployment
 Date: 2026-05-23
 
-These notes are not a standalone legal agreement. They define the operational
-commitments the product can currently support for a paid pilot.
+These notes are not a standalone legal agreement and have not been exercised
+with a live customer. They define implementation-level boundaries that would
+require legal, provider, security, and operator review before any paid pilot.
 
 ## Roles
 

@@ -1,7 +1,7 @@
 # Evidence Index - Lead Response SLA Agent
 
 Version: 1.0
-Last updated: 2026-05-23
+Last updated: 2026-07-13
 
 This file indexes durable proof so agents can retrieve prior evidence quickly. It is not authoritative by itself; every row points to the artifact that carries the evidence.
 
@@ -17,8 +17,8 @@ This file indexes durable proof so agents can retrieve prior evidence quickly. I
 | NFR baseline plan | nfr | `docs/nfr.md` | Latency and operational targets for pilot | 2026-05-19 | Yes |
 | RAG reference patterns | reference | `docs/RAG_REFERENCE.md` | Dream Motif Interpreter RAG patterns selected for adaptation | 2026-05-19 | No |
 | Active profile eval gates | CI/test | `.github/workflows/ci.yml`, `tests/eval/` | Retrieval, Tool-Use, and Agentic eval gates in CI | 2026-05-19 | Yes |
-| Active production task graph | task graph | `docs/tasks.md` | T19-T49 development-loop tasks after completed prototype | 2026-05-19 | Yes |
-| Production readiness hardening backlog | task graph | `docs/tasks.md`, `docs/CODEX_PROMPT.md` | T50-T69 phases for data durability, deployment hardening, live providers, observability, security/privacy, controlled pilot, and go/no-go production review | 2026-05-20 | Yes |
+| Historical implementation task graph | task graph | `docs/tasks.md` | T19-T49 implementation tasks; task closure is not production validation | 2026-07-13 | No |
+| Historical pre-pilot hardening graph | task graph | `docs/tasks.md`, `docs/CODEX_PROMPT.md` | T50-T69 implementation mechanisms for durability, deployment, providers, observability, security/privacy, and a controlled-pilot gate; no live pilot evidence | 2026-07-13 | No |
 | Completed prototype task graph | archive | `docs/archive/tasks_T01_T18_completed.md` | Historical T01-T18 task graph and acceptance scope | 2026-05-19 | No |
 | Compact loop prompt state | prompt | `docs/CODEX_PROMPT.md`, `docs/prompts/LOOP_TASK_PROMPT.md` | Current next task and per-task loop instructions without completed-task bloat | 2026-05-19 | Yes |
 | T19 persistent repositories | integration test | `tests/integration/test_persistent_repositories.py` | PostgreSQL-backed lead, conversation, transcript, review, approval, and outcome persistence plus tenant isolation and PII-safe failures | 2026-05-20 | Yes |
@@ -94,6 +94,7 @@ This file indexes durable proof so agents can retrieve prior evidence quickly. I
 | Phase 20 verification | review | `docs/audit/PHASE20_REVIEW.md` | T63-T65 same-session verification with threat model, privacy/retention terms, and access review controls | 2026-05-23 | Yes |
 | Bootstrap decisions | decision log | `docs/DECISION_LOG.md` | Initial solution shape, profiles, runtime, retrieval mode, approval boundaries | 2026-05-19 | No |
 | Bootstrap handoff | journal note | `docs/IMPLEMENTATION_JOURNAL.md` | Session-level continuity for the generated Phase 1 package | 2026-05-19 | No |
+| Portfolio reference evidence boundary | manifest / ledger / unit test | `docs/REFERENCE_EVIDENCE_LEDGER.md`, `docs/evidence/reference_evidence_manifest.json`, `tests/unit/test_reference_evidence_manifest.py` | Exact checksums and negative claims for the 50-case synthetic replay, controlled baselines, and seven injected failures; explicitly no live client, production reliability, conversion, ROI, or paid-pilot proof | 2026-07-13 | Yes |
 
 ---
 

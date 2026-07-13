@@ -13,9 +13,10 @@ Execution mode: Codex-only. Do not invoke Codex through `codex exec` or any nest
 
 ## Current State
 
-- Product state: validated prototype completed through T18; production-readiness
-  and showcase work completed through T77; paused as standalone product unless
-  real business load appears.
+- Product state: fixture-validated reference implementation. Implementation and
+  pre-pilot hardening tasks closed through T77, but production readiness and
+  business outcomes are not validated. The project stays paused unless real,
+  consented business load appears.
 - Active task graph: Phase 23 pause/extraction tasks. Do not continue
   provider, persistence, or production-hardening work without explicit
   reactivation.
