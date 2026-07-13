@@ -43,6 +43,7 @@ The form requires an exact revision, credential-free command, sanitized output,
 and the furthest fixture/test boundary actually exercised. It is not a feature
 roadmap or a request for access to a live lead flow. Do not attach lead/contact
 data, provider payloads, credentials, tenant exports, or unsanitized logs.
+Suspected vulnerabilities follow [SECURITY.md](SECURITY.md), not the public form.
 
 ## Цель проекта
 
