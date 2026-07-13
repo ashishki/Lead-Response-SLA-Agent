@@ -6,6 +6,11 @@ import yaml
 
 WORKFLOW_PATH = Path(".github/workflows/ci.yml")
 DEPLOY_WORKFLOW_PATH = Path(".github/workflows/deploy.yml")
+WORKFLOW_PATHS = tuple(sorted(Path(".github/workflows").glob("*.y*ml")))
+PINNED_OFFICIAL_ACTIONS = {
+    "actions/checkout": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+    "actions/setup-python": "ece7cb06caefa5fff74198d8649806c4678c61a1",
+}
 
 
 def load_workflow() -> dict:
@@ -84,6 +89,29 @@ def test_deploy_workflow_requires_staging_before_production() -> None:
         "Run production smoke tests",
         "Validate rollback assets",
     } <= (production_steps)
+
+
+def test_all_workflows_enforce_pinned_read_only_actions() -> None:
+    assert {path.name for path in WORKFLOW_PATHS} == {"ci.yml", "deploy.yml"}
+    action_steps: list[dict] = []
+
+    for workflow_path in WORKFLOW_PATHS:
+        workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
+        assert workflow["permissions"] == {"contents": "read"}
+
+        for job in workflow["jobs"].values():
+            assert "permissions" not in job
+            action_steps.extend(step for step in job["steps"] if "uses" in step)
+
+    assert len(action_steps) == 12
+    assert sum(step["uses"].startswith("actions/checkout@") for step in action_steps) == 7
+    for step in action_steps:
+        action, separator, revision = step["uses"].partition("@")
+        assert separator == "@"
+        assert action in PINNED_OFFICIAL_ACTIONS
+        assert revision == PINNED_OFFICIAL_ACTIONS[action]
+        if action == "actions/checkout":
+            assert step.get("with", {}).get("persist-credentials") is False
 
 
 def test_release_template_tracks_model_eval_and_rollback_changes() -> None:
